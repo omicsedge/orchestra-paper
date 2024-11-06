@@ -1,0 +1,14 @@
+awscli==1.34.31
+awswrangler==3.9.1
+boto3==1.35.31
+click==8.1.7
+dask==2023.5.0
+matplotlib==3.7.5
+numpy==1.24.4
+pandas==2.0.3
+sagemaker==2.232.1
+scikit-learn==1.3.2
+seaborn==0.13.2
+sgkit[vcf]==0.7.0
+pyslim==1.0.4
+xarray==2023.1.0
