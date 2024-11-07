@@ -9,14 +9,16 @@ from typing import List, Tuple
 
 import click
 from joblib import Parallel, delayed
-from scripts.base_inference import predict_window
-from scripts.evaluate import evaluate
-from scripts.merge_base_layer import merge_base_layer
-from scripts.save_model import AncestryModel
-from scripts.smooth_inference import smooth_inference
-from scripts.train_base_layer import train_base_layer
-from scripts.train_smooth_layer import train_smooth_layer
-from scripts.zarr_to_parquet import zarr_to_parquet
+from scripts import (
+    AncestryModel,
+    evaluate,
+    merge_base_layer,
+    predict_window,
+    smooth_inference,
+    train_base_layer,
+    train_smooth_layer,
+    zarr_to_parquet,
+)
 
 
 @click.command()

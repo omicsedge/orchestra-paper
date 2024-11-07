@@ -71,9 +71,7 @@ def get_populatin_weights(train_loader):
 
     # inverse count weightage
     all_labels_counts = 1 / pd.Series(all_labels).value_counts()
-    all_labels_counts = (
-        all_labels_counts / all_labels_counts.sum()
-    )  # TODO: check if this is mean instead of all
+    all_labels_counts = all_labels_counts / all_labels_counts.sum()
 
     # reorder to align with torch classes
     all_labels_counts = all_labels_counts[

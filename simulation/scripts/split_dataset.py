@@ -1,70 +1,84 @@
 import json
+import logging
 from pathlib import Path
+from typing import Dict
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+logging.basicConfig(level=logging.INFO)
 
-def _read_sample_map(sample_map):
+
+def _read_sample_map(sample_map: Path) -> pd.DataFrame:
     """Read and filter a sample map file.
 
     Args:
         sample_map (Path): Path to the sample map TSV file.
 
     Returns:
-        pd.DataFrame: Filtered dataframe containing sample information, excluding ADMIXED
-            and 'na' samples, as well as rows with null level_3_name.
+        pd.DataFrame: Filtered dataframe containing:
+            - Excludes samples with level_3_name of "ADMIXED" or "na"
+            - Excludes rows with null level_3_name
+            - Contains columns: sample_id (str), level_3_name, meta_1, etc.
+
+    Raises:
+        Exception: If there's an error reading or processing the sample map file.
     """
-    df = pd.read_csv(sample_map, sep="\t")
-    df["sample_id"] = df.sample_id.astype(str)
-    df = df[~df.level_3_name.isin(["ADMIXED", "na"])]
-    df = df[~df.level_3_name.isnull()]
+    try:
+        df = pd.read_csv(sample_map, sep="\t", dtype={"sample_id": str})
+        return df[
+            (~df.level_3_name.isin(["ADMIXED", "na"])) & (df.level_3_name.notna())
+        ]
+    except Exception as e:
+        logging.error(f"Error reading sample map: {e}")
+        raise
 
-    return df
 
-
-def _get_stratified_sample(df, column, sample_size):
+def _get_stratified_sample(
+    df: pd.DataFrame, column: str, sample_size: int
+) -> pd.DataFrame:
     """Get a stratified sample from the dataset based on a specified column.
 
     Args:
-        df (pd.DataFrame): Input dataframe to sample from.
-        column (str): Column name to stratify by.
-        sample_size (int): Total desired sample size.
+        df (pd.DataFrame): Input dataframe containing samples to select from.
+        column (str): Column name to use for stratification (e.g., "meta_1").
+        sample_size (int): Target total number of samples to return.
 
     Returns:
-        pd.DataFrame: Stratified sample where each category in the specified column
-            has approximately equal representation, limited by the smallest category size.
+        pd.DataFrame: Stratified sample with approximately equal representation per category,
+            limited by the smallest category size. Contains same columns as input df.
     """
-    rem_size = sample_size
-    dfs = []
-
     value_counts = df[column].value_counts(sort=True, ascending=True)
+    samples = []
+    remaining_size = sample_size
     n_categories = len(value_counts)
 
-    for i in range(n_categories):
-        count = value_counts.iloc[i]
+    for i, (category, count) in enumerate(value_counts.items()):
+        n_samples = min(count, remaining_size // (n_categories - i))
+        remaining_size -= n_samples
+        samples.append(df[df[column] == category].sample(n_samples))
 
-        n_samples = int(min(count, rem_size / (n_categories - i)))
-        rem_size -= n_samples
-
-        # print(value_counts.index[i], count, n_samples)
-        dfs.append(df[df[column] == value_counts.index[i]].sample(n_samples))
-
-    return pd.concat(dfs)
+    return pd.concat(samples, ignore_index=True)
 
 
-def _balance_dataset(df, upper_limit=200, level_4_threshold=4):
+def _balance_dataset(
+    df: pd.DataFrame, upper_limit: int = 200, level_4_threshold: int = 4
+) -> pd.DataFrame:
     """Balance the dataset by removing small populations and limiting large ones.
 
     Args:
-        df (pd.DataFrame): Input dataframe to balance.
-        upper_limit (int, optional): Maximum number of samples per level 3 population.
-            Defaults to 200.
-        level_4_threshold (int, optional): Minimum number of samples required for a
-            level 4 population. Defaults to 4.
+        df (pd.DataFrame): Input dataframe containing sample information.
+        upper_limit (int, optional): Maximum samples allowed per level 3 population.
+            Populations exceeding this will be downsampled. Defaults to 200.
+        level_4_threshold (int, optional): Minimum samples required for a level 4
+            population to be included. Defaults to 4.
 
     Returns:
-        pd.DataFrame: Balanced dataframe where populations meet the size thresholds.
+        pd.DataFrame: Balanced dataframe where:
+            - Level 4 populations have at least level_4_threshold samples
+            - Level 3 populations have at most upper_limit samples
+            - Small populations (<4 samples) are removed
     """
     # trim level 4 below 4 samples
     vcs = df.meta_1.value_counts()
@@ -74,8 +88,7 @@ def _balance_dataset(df, upper_limit=200, level_4_threshold=4):
         if count >= level_4_threshold:
             sids += df[df.meta_1 == pop].sample_id.tolist()
         else:
-            print(pop, count)
-            pass  # don't include
+            logging.error(f"{pop} has {count} samples (<{level_4_threshold}), skipping")
 
     df = df[df.sample_id.isin(sids)]
 
@@ -100,78 +113,113 @@ def _balance_dataset(df, upper_limit=200, level_4_threshold=4):
     return df
 
 
-def split_dataset(sample_map: str, description: str, output_dir: Path):
+def split_dataset(
+    sample_map: Path, description: str, temp_path: Path, output_path: Path
+) -> Dict[str, Path]:
     """Split a sample map dataset into training and test sets.
+
+    This function processes a sample map file, balances the dataset, and creates
+    train/test splits while maintaining population stratification.
 
     Args:
         sample_map (Path): Path to the input sample map TSV file.
         description (str): Description of the dataset split.
         output_dir (Path): Directory where the split datasets and metadata will be saved.
 
-    The function:
-    1. Reads and filters the sample map
-    2. Balances the dataset by removing small populations and limiting large ones
-    3. Performs a stratified train/test split (60/40)
-    4. Saves the split datasets and metadata
+    Returns:
+        Dict[str, Path]: Dictionary containing paths to the output files for each split
+            ('train' and 'test').
+
+    Raises:
+        ValueError: If the split validation fails (size mismatch or overlapping samples).
+        Exception: If there's an error during processing.
+
+    The function performs the following steps:
+        1. Reads and filters the sample map
+        2. Balances the dataset by removing small populations and limiting large ones
+        3. Performs a stratified train/test split (60/40)
+        4. Saves the split datasets and metadata
     """
-    # read sample map
-    sample_map_df = _read_sample_map(sample_map)
-    sample_map_df = sample_map_df[sample_map_df.level_3_code != "na"]
+    try:
+        # Read and filter data
+        sample_map_df = _read_sample_map(sample_map)
+        sample_map_df = sample_map_df.loc[sample_map_df.level_3_code != "na"]
 
-    print(f"Number of populations: {len(sample_map_df.level_3_name.drop_duplicates())}")
-    print(f"Number of samples: {len(sample_map_df.sample_id)}")
-    print(f"Number of samples (after level 1 filter): {len(sample_map_df.sample_id)}")
+        # Log initial statistics
+        logging.info("Dataset statistics:")
+        logging.info(f"- Populations: {sample_map_df.level_3_name.nunique()}")
+        logging.info(f"- Total samples: {len(sample_map_df)}")
 
-    # balance dataset by trimming and removing populations
-    df = _balance_dataset(sample_map_df, upper_limit=500)
-    # perform train/test split
-    df_train, df_test = train_test_split(
-        df,
-        test_size=0.4,
-        shuffle=True,
-        stratify=df[["level_3_name", "meta_1"]],
-    )
+        # Balance dataset
+        df = _balance_dataset(sample_map_df, upper_limit=500)
 
-    print(f"Train Samples: {len(df_train)}")
-    print(f"Test Samples : {len(df_test)}")
-
-    assert len(df_train) + len(df_test) == len(sample_map_df)
-
-    # make sure test/train split doesn't overlap
-    assert (
-        np.intersect1d(df_test.sample_id.to_numpy(), df_train.sample_id.to_numpy()).size
-        == 0
-    )
-
-    df_train.to_csv(output_dir / "train/pheno/sample_map.tsv", sep="\t", index=False)
-    df_test.to_csv(output_dir / "test/pheno/sample_map.tsv", sep="\t", index=False)
-
-    with open(output_dir / "meta.json", "w") as f:
-        json.dump(
-            {
-                "sample_map": sample_map,
-                "description": description,
-            },
-            f,
+        # Perform split
+        train_df, test_df = train_test_split(
+            df,
+            test_size=0.4,
+            shuffle=True,
+            stratify=df[["level_3_name", "meta_1"]],
         )
 
-    df = (
+        # Validate split
+        if not (len(train_df) + len(test_df) == len(df)):
+            raise ValueError("Split validation failed: size mismatch")
+        if np.intersect1d(test_df.sample_id, train_df.sample_id).size != 0:
+            raise ValueError("Split validation failed: overlapping samples")
+
+        # Save splits
+        result = {}
+        for cohort, cohort_df in [("train", train_df), ("test", test_df)]:
+            logging.info(f"{cohort.title()} samples: {len(cohort_df)}")
+            path = temp_path / cohort / "pheno"
+            path.mkdir(parents=True, exist_ok=True)
+            sample_map_path = path / "sample_map.tsv"
+            cohort_df.to_csv(sample_map_path, sep="\t", index=False)
+            result[cohort] = sample_map_path
+
+        # Save metadata
+        _save_metadata(output_path, sample_map, description, sample_map_df)
+
+        return result
+
+    except Exception as e:
+        logging.error(f"Error in split_dataset: {e}")
+        raise
+
+
+def _save_metadata(
+    output_path: Path, sample_map: Path, description: str, sample_map_df: pd.DataFrame
+) -> None:
+    """Save metadata files for the dataset split.
+
+    Args:
+        output_path (Path): Directory where metadata files will be saved.
+        sample_map (Path): Original sample map file path.
+        description (str): Description of the dataset split.
+        sample_map_df (pd.DataFrame): The processed sample map dataframe.
+
+    The function saves two files:
+        1. meta.json: Contains basic metadata about the split
+        2. population_map.tsv: Contains detailed population information
+    """
+
+    logging.info(f"Saving meta info: {output_path / 'meta.json'}")
+    with open(output_path / "meta.json", "w") as f:
+        data = {
+            "sample_map": str(sample_map),
+            "description": description,
+        }
+        json.dump(data, f)
+
+    logging.info(f"Saving population map: {output_path / 'population_map.tsv'}")
+    (
         sample_map_df[["level_3_code", "level_1_name", "level_2_name", "level_3_name"]]
         .drop_duplicates()
         .sort_values(["level_1_name", "level_2_name", "level_3_name"])
+        .reset_index(drop=True)
         .reset_index()
-        .drop("index", axis=1)
-        .reset_index()
-        .rename(columns={"index": "id"})
+        .rename(columns={"index": "id"})[
+            ["id", "level_3_code", "level_1_name", "level_2_name", "level_3_name"]
+        ]
+        .to_csv(output_path / "population_map.tsv", sep="\t", index=False)
     )
-    df = df[["id", "level_3_code", "level_1_name", "level_2_name", "level_3_name"]]
-    df.to_csv(
-        output_dir / "population_map.tsv",
-        sep="\t",
-        index=False,
-    )
-
-    return {
-        "train": output_dir / "train/pheno/sample_map.tsv", 
-        "test": output_dir / "test/pheno/sample_map.tsv",
-    }

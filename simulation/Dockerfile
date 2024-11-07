@@ -1,5 +1,4 @@
 FROM ubuntu:20.04
-WORKDIR /app
 
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive

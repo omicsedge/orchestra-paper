@@ -17,7 +17,8 @@ __pypackages__/
 # Project specific
 training/output/
 training/model/
-reference-files/fasta/*
+reference_files/fasta/*
+output/*
 
 
 # Exceptions
