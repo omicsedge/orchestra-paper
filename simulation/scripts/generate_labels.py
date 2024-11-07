@@ -132,13 +132,13 @@ def run(
                 while snps[i_snp, 2] == "MONO":
                     pop_writer.writerow(
                         snps[i_snp, :2].tolist() + pop_line.tolist()
-                    )  # todo: performance increase by not converting to list
+                    )
                     i_snp += 1
 
                 # Write polymorphic SNPs
                 pop_writer.writerow(
                     snps[i_snp, :2].tolist() + pop_line.tolist()
-                )  # todo: performance increase by not converting to list
+                )
                 i_snp += 1
 
         # Write monomorphic SNPs if left.
@@ -146,7 +146,7 @@ def run(
             assert snps[i_snp, 2] == "MONO"
             pop_writer.writerow(
                 snps[i_snp, :2].tolist() + pop_line.tolist()
-            )  # todo: performance increase by not converting to list
+            )
             i_snp += 1
 
 

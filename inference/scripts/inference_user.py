@@ -69,7 +69,6 @@ def read_X(df, n_populations):
 def input_fn(request_body, request_content_type):
     logging.debug("**** Input Function *****")
 
-    # TODO: check whether text/tsv is in the content type
     if "text/tsv" in request_content_type:
         df = pd.read_csv(
             StringIO(BytesIO(request_body).read().decode()), sep="\t", header=None
