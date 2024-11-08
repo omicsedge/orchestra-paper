@@ -3,7 +3,6 @@ set -e  # Exit immediately if any command fails
 
 # Accept command line arguments
 inference_panel=$1  # First argument: path to the inference panel VCF file
-chr=$2              # Second argument: chromosome number (appears unused in script)
 
 # Index the VCF file
 bcftools index -f $inference_panel

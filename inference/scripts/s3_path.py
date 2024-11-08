@@ -1,5 +1,7 @@
 from urllib.parse import urlparse
 import os
+
+
 class S3Path:
     def __init__(self, url: str) -> None:
         parsed_url = urlparse(url)

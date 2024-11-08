@@ -86,3 +86,15 @@ Each training run processes a pair of chromosomes with the following parameters:
 - Output directory: ./output_training
 
 ### 5. Run Inference Pipeline
+
+```bash
+mkdir -p output_inference
+docker run --rm \
+    -v $(pwd)/reference_files:/reference_files \
+    -v $(pwd)/output_training:/output_training \
+    -v $(pwd)/output_inference:/output_inference \
+    inference \
+    -p /reference_files/example_data/inference_panel.gz \
+    -n "Peruvians" \
+    -o /output_inference
+```
