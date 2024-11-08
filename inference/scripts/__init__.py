@@ -6,3 +6,4 @@ from .model_manager import (
 )
 from .utils import convert_to_ancestry_format
 from .vcf_preprocess import preprocess
+from .s3_path import S3Path

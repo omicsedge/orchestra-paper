@@ -63,8 +63,8 @@ mkdir -p $OUTPUT_DIR/$COHORT/phenotype-data/chromosomes/chr$CHR/gen0
 cp ancestry.txt.gz $OUTPUT_DIR/$COHORT/phenotype-data/chromosomes/chr$CHR/gen0/
 
 echo "Finished Extract Founders for $COHORT and chr$CHR"
-mkdir -p $OUTPUT_DIR/$COHORT/genotype-data/master/chromosomes/chr$CHR/gen0/
-bgzip dataset.vcf && cp dataset.vcf.gz $OUTPUT_DIR/$COHORT/genotype-data/master/chromosomes/chr$CHR/gen0/chr$CHR.vcf.gz
+mkdir -p $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen0/
+bgzip dataset.vcf && cp dataset.vcf.gz $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen0/chr$CHR.vcf.gz
 
 echo "Start conversion to x-array (zarr)"
 python /scripts/to_xarray.py \
@@ -74,8 +74,8 @@ python /scripts/to_xarray.py \
     --output-path chr$CHR.zarr
 
 echo "Finished conversion"
-mkdir -p $OUTPUT_DIR/$COHORT/zarr-files/chromosomes/chr$CHR/gen0
+mkdir -p $OUTPUT_DIR/$COHORT/zarr-files/chr$CHR/gen0
 tar -czf chr$CHR.zarr.tar.gz chr$CHR.zarr
-cp chr$CHR.zarr.tar.gz $OUTPUT_DIR/$COHORT/zarr-files/chromosomes/chr$CHR/gen0/
+cp chr$CHR.zarr.tar.gz $OUTPUT_DIR/$COHORT/zarr-files/chr$CHR/gen0/
 
 rm -rf $temp_dir

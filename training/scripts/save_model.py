@@ -10,7 +10,7 @@ logging.getLogger().setLevel(logging.INFO)
 class AncestryModel:
     def __init__(
         self,
-        simulated_data_path: Path,
+        population_map_file: str,
         model_path: Path,
         sub_model_name: str,
         windows_info_file: Path,
@@ -19,7 +19,7 @@ class AncestryModel:
         smooth_model_path: str,
     ) -> None:
         self.model_path = model_path
-        self.simulated_data_path = simulated_data_path
+        self.population_map_file = population_map_file
         self.windows_info_file = windows_info_file
         self.simulated_params_file = simulated_params_file
         self.base_model_path = base_model_path
@@ -34,7 +34,7 @@ class AncestryModel:
 
     def _save_artifacts(self):
         shutil.copyfile(
-            self.simulated_data_path / "population_map.tsv",
+            self.population_map_file,
             self.model_path / "artifacts" / "population_map.tsv",
         )
         shutil.copyfile(

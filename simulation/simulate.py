@@ -85,13 +85,14 @@ def simulate(
                     futures = [
                         executor.submit(
                             run_command,
-                            f"bash scripts/simulate_generation.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr} {generation} {type} {n_times}"
+                            f"bash scripts/simulate_generation.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr} {generation} {type} {n_times}",
                         )
                         for generation in range(1, 7)
                     ]
                     # Wait for all generations to complete
                     for future in futures:
                         future.result()
+
 
 if __name__ == "__main__":
     simulate()

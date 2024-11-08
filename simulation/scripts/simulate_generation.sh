@@ -19,7 +19,7 @@ echo "Working directory: $temp_dir"
 
 
 # INTERNAL FOLDER STRUCTURE
-cp $OUTPUT_DIR/$COHORT/genotype-data/master/chromosomes/chr$CHR/gen0/chr$CHR.vcf.gz dataset.vcf.gz
+cp $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen0/chr$CHR.vcf.gz dataset.vcf.gz
 cp $OUTPUT_DIR/$COHORT/phenotype-data/pedigrees/death.generation_${GEN}.txt death.generation.txt
 cp $OUTPUT_DIR/$COHORT/phenotype-data/pedigrees/mating.generation_${GEN}.txt mating.generation.txt
 bgzip -d dataset.vcf.gz
@@ -171,8 +171,8 @@ python /scripts/generate_labels.py \
 
 
 echo "Finished Simulation for chr:$CHR and gen:$GEN"
-mkdir -p $OUTPUT_DIR/$COHORT/genotype-data/master/chromosomes/chr$CHR/gen$GEN/
-bgzip trees.generation.vcf && cp trees.generation.vcf.gz $OUTPUT_DIR/$COHORT/genotype-data/master/chromosomes/chr$CHR/gen$GEN/chr$CHR.vcf.gz
+mkdir -p $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen$GEN/
+bgzip trees.generation.vcf && cp trees.generation.vcf.gz $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen$GEN/chr$CHR.vcf.gz
 mkdir -p $OUTPUT_DIR/$COHORT/phenotype-data/chromosomes/chr$CHR/gen$GEN/
 cp Labels.generation.txt.gz $OUTPUT_DIR/$COHORT/phenotype-data/chromosomes/chr$CHR/gen$GEN/ancestry.txt.gz
 
@@ -185,7 +185,7 @@ python /scripts/to_xarray.py \
 
 echo "Finished conversion"
 tar -czf chr$CHR.zarr.tar.gz chr$CHR.zarr
-mkdir -p $OUTPUT_DIR/$COHORT/zarr-files/chromosomes/chr$CHR/gen$GEN/
-mv chr$CHR.zarr.tar.gz $OUTPUT_DIR/$COHORT/zarr-files/chromosomes/chr$CHR/gen$GEN/
+mkdir -p $OUTPUT_DIR/$COHORT/zarr-files/chr$CHR/gen$GEN/
+mv chr$CHR.zarr.tar.gz $OUTPUT_DIR/$COHORT/zarr-files/chr$CHR/gen$GEN/
 
 rm -rf $temp_dir

@@ -82,9 +82,11 @@ class PreProcess:
             Dictionary mapping generation numbers to ZARR file paths
         """
         zarr_files = defaultdict(dict)
+        print(self._input_dir, "<<<<")
         gens = Path(self._input_dir).glob("gen*")
 
         for gen in gens:
+            print(gen, "<<<<")
             g = int(gen.name[len("gen") :])
 
             zarr_file = list(gen.glob(f"chr{self._chromosome}.zarr.tar.gz"))[0]

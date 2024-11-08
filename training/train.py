@@ -65,12 +65,6 @@ from scripts import (
     show_default=True,
     help="List of cohorts to process.",
 )
-@click.option(
-    "--models-dir",
-    "-m",
-    help="models directory",
-    type=Path,
-)
 def train(
     simulated_data_path: Path,
     start_chr: int,
@@ -80,7 +74,6 @@ def train(
     level: int,
     version: str,
     cohorts: List[str],
-    models_dir: Path,
 ):
     logging.info("Run preprocessing, converting zarr to parquet + windows")
     logging.info(f"Chromosomes: {start_chr}-{end_chr}")
@@ -94,7 +87,7 @@ def train(
     Parallel(n_jobs=cpu_count, prefer="threads")(
         delayed(zarr_to_parquet)(
             pop_map=str(simulated_data_path / "population_map.tsv"),
-            input_dir=simulated_data_path / cohort,
+            input_dir=simulated_data_path / cohort / "zarr-files" / f"chr{chrom}",
             output_dir=dataset / cohort,
             # Ensures separate directories for each cohort
             chromosome=chrom,
@@ -149,8 +142,8 @@ def train(
     )
     # SaveModel
     AncestryModel(
-        simulated_data_path=simulated_data_path,
-        model_path=models_dir / simulated_data_path / version,
+        population_map_file=simulated_data_path / "population_map.tsv",
+        model_path=output_dir / version,
         sub_model_name="chr" + ".".join(map(str, chromosomes)),
         windows_info_file=output_dir / "base_layer_model" / "windows_info.tsv",
         simulated_params_file=output_dir / "smooth_layer_model" / "parameters.json",

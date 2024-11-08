@@ -19,6 +19,9 @@ training/output/
 training/model/
 reference_files/fasta/*
 output/*
+output_simulation/*
+output_training/*
+output_iference/*
 
 
 # Exceptions

@@ -130,23 +130,17 @@ def run(
             for i in range(tree.num_sites):
                 # Write the same line to Monomorphic SNPs.
                 while snps[i_snp, 2] == "MONO":
-                    pop_writer.writerow(
-                        snps[i_snp, :2].tolist() + pop_line.tolist()
-                    )
+                    pop_writer.writerow(snps[i_snp, :2].tolist() + pop_line.tolist())
                     i_snp += 1
 
                 # Write polymorphic SNPs
-                pop_writer.writerow(
-                    snps[i_snp, :2].tolist() + pop_line.tolist()
-                )
+                pop_writer.writerow(snps[i_snp, :2].tolist() + pop_line.tolist())
                 i_snp += 1
 
         # Write monomorphic SNPs if left.
         while i_snp < len(df):
             assert snps[i_snp, 2] == "MONO"
-            pop_writer.writerow(
-                snps[i_snp, :2].tolist() + pop_line.tolist()
-            )
+            pop_writer.writerow(snps[i_snp, :2].tolist() + pop_line.tolist())
             i_snp += 1
 
 
