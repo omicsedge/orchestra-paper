@@ -15,31 +15,9 @@ from dask import delayed
 logging.getLogger().setLevel(logging.INFO)
 
 
-@dataclass
-class SampleInfo:
-    "Information about Input Sample."
-    user_id: str
-    file_id: str
-    input_prefix: str
-
-
-# This is the data returned by pyarrow when doing `to_pylist`
-DictVariant = typing.TypedDict(
-    "DictVariant",
-    {
-        "chrom": str,
-        "pos": int,
-        "ref": str,
-        "alt": str,
-        "gt1": typing.Literal[0, 1],
-        "gt2": typing.Literal[0, 1],
-    },
-)
 Genotype = Tuple[int, int, bool]  # in fact it's a list but that's just a poor design
 # choice from the authors of the lib and it doesn't matter here. Saying it's a tuple makes
 # it possible have better type narrowing.
-
-VARIANTS_CHUNK_SIZE = 300
 
 
 @dataclass(frozen=True)
@@ -135,7 +113,7 @@ class VcfWindowizer:
         return samples, data
 
 
-def read_genotypes(
+def _read_genotypes(
     windowizer: VcfWindowizer, chromosomes: List[int], input_prefix: str
 ) -> dict:
     data = []
@@ -170,7 +148,7 @@ def vcf_preprocess(
     for sample_batch in input_dir.iterdir():
         logging.info(f"extracting samples in {sample_batch}")
 
-        genotypes = read_genotypes(windowizer, chroms, sample_batch)
+        genotypes = _read_genotypes(windowizer, chroms, sample_batch)
 
         logging.info(f"writing to {output_dir / f'{sample_batch.parts[-1]}.tsv'}")
 

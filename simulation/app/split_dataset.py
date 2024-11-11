@@ -10,11 +10,11 @@ from sklearn.model_selection import train_test_split
 logging.basicConfig(level=logging.INFO)
 
 
-def _read_sample_map(sample_map: Path) -> pd.DataFrame:
+def _read_sample_map(sample_map: str) -> pd.DataFrame:
     """Read and filter a sample map file.
 
     Args:
-        sample_map (Path): Path to the sample map TSV file.
+        sample_map (str): Path to the sample map TSV file.
 
     Returns:
         pd.DataFrame: Filtered dataframe containing:
@@ -114,7 +114,7 @@ def _balance_dataset(
 
 
 def split_dataset(
-    sample_map: Path, description: str, temp_path: Path, output_path: Path
+    sample_map: str, description: str, temp_path: Path, output_path: Path
 ) -> Dict[str, Path]:
     """Split a sample map dataset into training and test sets.
 
@@ -122,9 +122,9 @@ def split_dataset(
     train/test splits while maintaining population stratification.
 
     Args:
-        sample_map (Path): Path to the input sample map TSV file.
-        description (str): Description of the dataset split.
-        output_dir (Path): Directory where the split datasets and metadata will be saved.
+        sample_map (str): Path to the input sample map TSV file.
+        description (str): Version/Description of the dataset split.
+        output_path (Path): Directory where the split datasets and metadata will be saved.
 
     Returns:
         Dict[str, Path]: Dictionary containing paths to the output files for each split

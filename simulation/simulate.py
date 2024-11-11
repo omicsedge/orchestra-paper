@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import click
-from scripts.split_dataset import split_dataset
+from app.split_dataset import split_dataset
 
 
 def process_chromosome(chr: int, input_file: str, temp_path: Path) -> Tuple[int, Path]:
@@ -33,7 +33,7 @@ def run_command(cmd: str) -> None:
 @click.option("--end-chr", "-ec", type=int, help="End chromosome")
 @click.option("--source-panel", "-sp", type=str, help="Source panel path")
 @click.option("--sample-map", "-sm", type=str, help="Sample map file")
-@click.option("--description", "-d", type=str, help="Description")
+@click.option("--version", "-v", type=str, help="Version")
 @click.option("--type", "-t", type=str, help="Type", default="random")
 @click.option("--n-times", "-nt", type=int, help="Number of times", default=2)
 @click.option("--output-dir", "-o", type=Path, help="Output directory", default=".")
@@ -42,10 +42,10 @@ def simulate(
     end_chr: int,
     source_panel: str,
     sample_map: str,
-    description: str,
+    version: str,
     type: str,
     n_times: int,
-    output_dir: str,
+    output_dir: Path,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     chromosomes: List[int] = list(range(start_chr, end_chr + 1))
@@ -66,7 +66,7 @@ def simulate(
                 chr, output_file = future.result()
                 chr_files[chr] = output_file
 
-        cohorts = split_dataset(sample_map, description, temp_path, output_dir)
+        cohorts = split_dataset(sample_map, version, temp_path, output_dir)
         for cohort, sample_map_path in cohorts.items():
             # Generate pedigree
             run_command(

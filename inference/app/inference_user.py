@@ -72,11 +72,11 @@ class Recombination:
 
 class Model:
     def __init__(self, model_dir: Path):
-        model_file = model_dir / "smooth" / "model.pt"
+        model_file = model_dir / "model.pt"
         self._model = torch.jit.load(model_file, map_location=torch.device("cpu"))
         self._model.eval()
 
-        with open(model_dir / "artifacts" / "parameters.json") as fin:
+        with open(model_dir / "parameters.json") as fin:
             self._parameters = json.load(fin)
 
     @property

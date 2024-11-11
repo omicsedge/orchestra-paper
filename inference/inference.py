@@ -4,11 +4,12 @@ import tempfile
 from pathlib import Path
 import json
 import click
-import numpy as np
+import dask.dataframe as dd
+
 
 # import dask.dataframe as dd
 import pandas as pd
-from scripts import Transformer, vcf_preprocess, predict_fn, convert_to_ancestry_format
+from app import Transformer, vcf_preprocess, predict_fn, convert_to_ancestry_format
 
 
 def run_command(cmd: str) -> None:
@@ -39,9 +40,11 @@ def inference(panel: Path, output_dir: Path, model_path: Path):
             logging.info(f"Output dir: {output_dir}")
 
             model_dir = submodel / "base" / "model.tar.gz"
+            smodel_dir = submodel / "smooth" / "model.tar.gz"
 
             (temp_path / submodel.name).mkdir(parents=True, exist_ok=True)
             run_command(f"tar -xzf {model_dir} -C {temp_path / submodel.name}")
+            run_command(f"tar -xzf {smodel_dir} -C {temp_path / submodel.name}")
             model_dir = temp_path / submodel.name / "model"
 
             sample_list_dir = output_dir / "window_results" / submodel.name
@@ -69,23 +72,9 @@ def inference(panel: Path, output_dir: Path, model_path: Path):
                     index=False,
                     sep="\t",
                 )
-                df_base = convert_to_ancestry_format(
-                    output_dir / "base_results" / submodel.name,
-                    model_path / "artifacts" / "population_map.tsv",
-                    submodel / "artifacts" / "parameters.json",
-                    pred_by_argmin=True,
-                )
-                (output_dir / "summary_results").mkdir(parents=True, exist_ok=True)
-                df_base.to_csv(
-                    output_dir
-                    / "summary_results"
-                    / f"base_samples.{submodel.name}.tsv.gz",
-                    sep="\t",
-                    index=False,
-                )
 
                 # predict smoothing layer
-                y_pred = predict_fn(predictions, submodel)
+                y_pred = predict_fn(predictions, model_dir)
                 (output_dir / "smooth_results" / submodel.name).mkdir(
                     parents=True, exist_ok=True
                 )
@@ -95,54 +84,83 @@ def inference(panel: Path, output_dir: Path, model_path: Path):
                     index=False,
                     sep="\t",
                 )
-                df_smooth = convert_to_ancestry_format(
-                    output_dir / "smooth_results" / submodel.name,
-                    model_path / "artifacts" / "population_map.tsv",
-                    submodel / "artifacts" / "parameters.json",
-                    pred_by_argmin=False,
-                )
-                df_smooth.to_csv(
-                    output_dir
-                    / "summary_results"
-                    / f"smooth_samples.{submodel.name}.tsv.gz",
-                    sep="\t",
-                    index=False,
-                )
 
-                # Performing basic analysis of the results.
-                df_base["layer"] = "base"
-                df_smooth["layer"] = "smooth"
+            df_base = convert_to_ancestry_format(
+                output_dir / "base_results" / submodel.name,
+                model_path / "artifacts" / "population_map.tsv",
+                submodel / "artifacts" / "parameters.json",
+                pred_by_argmin=True,
+            )
+            (output_dir / "summary_results").mkdir(parents=True, exist_ok=True)
+            df_base.to_csv(
+                output_dir / "summary_results" / f"base_samples.{submodel.name}.tsv.gz",
+                sep="\t",
+                index=False,
+            )
+            df_smooth = convert_to_ancestry_format(
+                output_dir / "smooth_results" / submodel.name,
+                model_path / "artifacts" / "population_map.tsv",
+                submodel / "artifacts" / "parameters.json",
+                pred_by_argmin=False,
+            )
+            df_smooth.to_csv(
+                output_dir
+                / "summary_results"
+                / f"smooth_samples.{submodel.name}.tsv.gz",
+                sep="\t",
+                index=False,
+            )
 
-                df = pd.concat([df_smooth, df_base])
-                del df_base, df_smooth
+        df_base = dd.read_csv(
+            output_dir / "summary_results" / "base_samples.*.tsv.gz",
+            sep="\t",
+            blocksize=None,
+            dtype={"sample_id": "object"},
+        ).compute()
+        df_base["layer"] = "base"
 
-                with open("chr_map.json", "rt") as fin:
-                    chr_fractions = json.load(fin)
+        df_smooth = dd.read_csv(
+            output_dir / "summary_results" / "smooth_samples.*.tsv.gz",
+            sep="\t",
+            blocksize=None,
+            dtype={"sample_id": "object"},
+        ).compute()
+        df_smooth["layer"] = "smooth"
 
-                chr_fractions = {int(k): v for k, v in chr_fractions.items()}
-                window_lengths = df.groupby(["chrom"])["window"].nunique().to_dict()
-                chr_map = {
-                    k: v / window_lengths[k]
-                    for k, v in chr_fractions.items()
-                    if k in window_lengths
-                }
+        # Performing basic analysis of the results.
+        df_base["layer"] = "base"
+        df_smooth["layer"] = "smooth"
 
-                df["weight"] = df.chrom.map(chr_map)
+        df = pd.concat([df_smooth, df_base])
+        del df_base, df_smooth
 
-                df_ = (
-                    df.groupby(["sample_id", "layer", "pred"])
-                    .agg({"weight": "sum"})
-                    .groupby(["sample_id", "layer"])
-                    .agg({"weight": weight_to_str})
-                    .rename(columns={"weight": "predicted ancestry"})
-                    .reset_index()
-                    .sort_values(["sample_id", "layer"])
-                )
-                df_.to_csv(
-                    output_dir / "summary_results" / f"ancestry.{submodel.name}.tsv",
-                    sep="\t",
-                    index=False,
-                )
+        with open("chr_map.json", "rt") as fin:
+            chr_fractions = json.load(fin)
+
+        chr_fractions = {int(k): v for k, v in chr_fractions.items()}
+        window_lengths = df.groupby(["chrom"])["window"].nunique().to_dict()
+        chr_map = {
+            k: v / window_lengths[k]
+            for k, v in chr_fractions.items()
+            if k in window_lengths
+        }
+
+        df["weight"] = df.chrom.map(chr_map)
+
+        df_ = (
+            df.groupby(["sample_id", "layer", "pred"])
+            .agg({"weight": "sum"})
+            .groupby(["sample_id", "layer"])
+            .agg({"weight": weight_to_str})
+            .rename(columns={"weight": "predicted ancestry"})
+            .reset_index()
+            .sort_values(["sample_id", "layer"])
+        )
+        df_.to_csv(
+            output_dir / "summary_results" / f"ancestry.tsv",
+            sep="\t",
+            index=False,
+        )
 
 
 if __name__ == "__main__":

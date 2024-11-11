@@ -23,7 +23,7 @@ RUN apt-get install -y \
 RUN apt-get install -y r-base
 
 # Install SLIM and tskit
-ADD docker_scripts/install_slim.sh .
+ADD install_slim.sh .
 RUN bash install_slim.sh
 
 # Requirements

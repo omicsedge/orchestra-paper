@@ -159,7 +159,7 @@ def test_model(network, criterion, loader):
 
 
 def train_model(
-    output_dir,
+    output_dir: Path,
     training_dir,
     validation_dir,
     population_map_file,
@@ -277,9 +277,7 @@ def train_model(
         all_pop_accuracies,
         columns=["epoch"] + [id_to_pop[i] for i in range(n_populations)],
     )
-    df_pop_accuracy.to_csv(
-        os.path.join(output_dir, "pop_accuracies.tsv.gz"), sep="\t", index=False
-    )
+    df_pop_accuracy.to_csv(output_dir / "pop_accuracies.tsv", sep="\t", index=False)
 
     if epoch == hparams["n_epochs"] - 1:
         logging.info("Training terminated - finished max epoch")

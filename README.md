@@ -44,7 +44,7 @@ docker run --rm \
     -sc 1 -ec 22 \
     -sp /reference_files/example_data/source_panel.vcf.gz \
     -sm /reference_files/example_data/sample_map.tsv \
-    -d "Peruvians 0.01" \
+    -v "example-0.01" \
     -t "random" \
     -nt 2 \
     -o /output_simulation
@@ -73,7 +73,8 @@ for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22
         -ws 600 \
         -l 3 \
         -o /output_training \
-        -v "peruvians-0.01"
+        -v "example-0.01" \
+        -e 100
 
     echo "Done with chromosomes $start_chr-$end_chr, model saved in output_training/"
 done
@@ -96,5 +97,5 @@ docker run --rm \
     inference \
     -p /reference_files/example_data/inference_panel.gz \
     -o /output_inference \
-    -m /output_training/peruvians-0.01
+    -m /output_training/example-0.01
 ```

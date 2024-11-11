@@ -13,7 +13,7 @@ import pandas as pd
 import xarray
 from joblib import Parallel, delayed
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class PreProcess:
@@ -26,8 +26,8 @@ class PreProcess:
 
     def __init__(
         self,
-        input_dir: str,
-        output_dir: str,
+        input_dir: Path,
+        output_dir: Path,
         chromosome: int,
         window_size: int,
         mapper_fn: Callable[[np.ndarray], np.ndarray],
@@ -82,7 +82,7 @@ class PreProcess:
             Dictionary mapping generation numbers to ZARR file paths
         """
         zarr_files = defaultdict(dict)
-        gens = Path(self._input_dir).glob("gen*")
+        gens = self._input_dir.glob("gen*")
 
         for gen in gens:
             g = int(gen.name[len("gen") :])
@@ -210,10 +210,11 @@ class PreProcess:
         labels_hard = np.apply_along_axis(lambda x: np.bincount(x).argmax(), 1, labels_)
         labels_hard = self._mapper_fn(labels_hard)
 
-        data_path = os.path.join(
-            self._output_dir, f"chr{self._chromosome}/gen{generation}/window-{w}/"
+        data_path = (
+            self._output_dir / f"chr{self._chromosome}/gen{generation}/window-{w}"
         )
-        os.makedirs(data_path, exist_ok=True)
+        data_path.mkdir(parents=True, exist_ok=True)
+
         df = pd.concat(
             [
                 pd.DataFrame(sample_names.to_numpy(), columns=["sample_id"], dtype=str),
@@ -228,11 +229,11 @@ class PreProcess:
             ],
             axis=1,
         )
-        df.to_parquet(os.path.join(data_path, "data.parquet"))
+        df.to_parquet(data_path / "data.parquet")
 
         if generation == 0:
             pd.DataFrame(snps_).to_csv(
-                os.path.join(data_path, "snps.tsv"),
+                data_path / "snps.tsv",
                 sep="\t",
                 header=["chr", "pos", "ref", "alt"],
                 index=False,
@@ -253,7 +254,12 @@ class PreProcess:
 
 
 def zarr_to_parquet(
-    input_dir, output_dir, chromosome, window_size, level, pop_map: str
+    input_dir: Path,
+    output_dir: Path,
+    chromosome: int,
+    window_size: int,
+    level: int,
+    pop_map: str,
 ):
     mapper_fn = PreProcess.get_level_mapper(pop_map, level)
 
