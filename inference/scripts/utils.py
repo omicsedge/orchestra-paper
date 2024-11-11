@@ -1,15 +1,24 @@
 import logging
-
+from pathlib import Path
 import numpy as np
 import pandas as pd
+import dask.dataframe as dd
+import json
 
 # configure logging
 logging.basicConfig(level=logging.INFO)
 
 
 def convert_to_ancestry_format(
-    df, population_map_file, parameters, pred_by_argmin=False
+    results_path: Path,
+    population_map_file: Path,
+    parameters_path: Path,
+    pred_by_argmin=False,
 ):
+    parameters = json.load(parameters_path.open())
+    df = dd.read_csv(
+        f"{results_path}/*", sep="\t", header=None, dtype={2: "object"}
+    ).compute()
     df_map = pd.read_csv(population_map_file, sep="\t")
     id_to_code = df_map.set_index("id")["level_3_code"].to_dict()
 
@@ -31,7 +40,7 @@ def convert_to_ancestry_format(
 
     # reshape predictions into per window for raw format
     y = y.reshape(y.shape[0] * n_windows, n_populations)
-    logging.info(f"Shape of raw predictiosn: {y.shape}")
+    logging.info(f"Shape of raw predictions: {y.shape}")
 
     # create dataframe
     df_hap = pd.DataFrame(y)

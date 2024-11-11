@@ -146,7 +146,7 @@ def train(
     # SaveModel
     AncestryModel(
         population_map_file=simulated_data_path / "population_map.tsv",
-        model_path=output_dir / version,
+        model_path=output_dir.parent / version,
         sub_model_name="chr" + ".".join(map(str, chromosomes)),
         windows_info_file=output_dir / "base_layer_model" / "windows_info.tsv",
         simulated_params_file=output_dir / "smooth_layer_model" / "parameters.json",

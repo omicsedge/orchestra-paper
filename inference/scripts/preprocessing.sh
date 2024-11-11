@@ -12,9 +12,12 @@ cd $temp_dir
 
 # Index the VCF file
 bcftools index -f $inference_panel
+# Extract list of all samples
+bcftools query -l "$inference_panel" > all.txt
+total_samples=$(wc -l < all.txt)
 
 # Print the number of samples in the inference panel
-echo "Samples for inference: $(bcftools query -l $inference_panel | wc -l)"
+echo "Samples for inference: $total_samples"
 
 # Create necessary subdirectories
 mkdir -p chromosomes samples commands
@@ -28,11 +31,8 @@ wait  # Wait for all chromosome splitting jobs to complete
 
 echo "Chromosomes files number: $(ls chromosomes/*.vcf.gz | wc -l)"
 
-# Extract list of all samples
-bcftools query -l $inference_panel > all.txt
-
 # Split samples into 5 roughly equal groups
-split -l $(( ($(wc -l < all.txt) + 4) / 5 )) all.txt samples/samples_
+split -l $(((total_samples + 4) / 5 )) all.txt samples/samples_
 
 # Rename split files with numeric suffixes (01-05)
 a=1
@@ -46,7 +46,6 @@ echo "Number of sampels in first batch: " $(cat samples/samples_01.csv | wc -l)
 echo "Number of sampels in last batch: " $(cat samples/samples_05.csv | wc -l)
 
 # Generate commands to split VCF by sample groups
-[ -f "commands.sh" ] && rm "commands.sh"
 for i in {1..5}; do
   path="dataset/sample_list_$i"
   mkdir -p $path

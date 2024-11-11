@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 
 BATCH_SIZE = 1024
 
+
 class Recombination:
     def __init__(self):
         pass
@@ -70,13 +71,12 @@ class Recombination:
 
 
 class Model:
-    def __init__(self, model_dir):
-        model_file = os.path.join(model_dir, "model.pt")
+    def __init__(self, model_dir: Path):
+        model_file = model_dir / "smooth" / "model.pt"
         self._model = torch.jit.load(model_file, map_location=torch.device("cpu"))
         self._model.eval()
 
-        parameter_file = os.path.join(model_dir, "parameters.json")
-        with open(parameter_file) as fin:
+        with open(model_dir / "artifacts" / "parameters.json") as fin:
             self._parameters = json.load(fin)
 
     @property
@@ -102,13 +102,12 @@ class Transformer:
         """Initialize the transformer."""
         self._model_dir = model_dir
 
-    def transform(self, data: pd.DataFrame, output_file: str, n_jobs=None):
+    def transform(self, data: pd.DataFrame, n_jobs=None):
         """
         Make predictions for input data using recomb base layer.
 
         Args:
             data pd.DataFrame: genotype data for the samples
-            output_file str: output file path
             n_jobs (_type_, optional): number of parallel jobs to run
 
         Returns:
@@ -138,7 +137,7 @@ class Transformer:
 
         # prepare response
         df = pd.concat([df_labels, pd.DataFrame(predictions)], axis=1)
-        df.to_csv(output_file, header=False, index=False, sep="\t")
+        return df
 
     def transform_window(self, chrom: int, window: int, data: np.ndarray):
         X_reference, y_reference = self._load_model(chrom, window)
@@ -169,6 +168,7 @@ class Transformer:
         df["window"] = int(filename.parts[-2][len("window-") :])
         return df
 
+
 def read_X(df, n_populations):
     X = df.iloc[:, 4:].to_numpy().astype(np.float32)
     n_samples = X.shape[0]
@@ -197,8 +197,6 @@ def input_fn(request_body, request_content_type):
         raise ValueError(f"not support {request_content_type} type yet")
 
     return df
-
-
 
 
 @njit
@@ -291,10 +289,10 @@ def remove_parents(similarity_matrix):
     return similarity_matrix
 
 
-def predict_fn(df, model_path):
-    logging.debug("**** Model Function *****")
+def predict_fn(df, model_path: Path):
+    logging.info(f"Start predicting for model {model_path}")
     model = Model(model_path)
-    logging.debug("**** Predict Function *****")
+
     try:
         device = torch.device("cpu")
 
@@ -331,26 +329,8 @@ def predict_fn(df, model_path):
         df_output = pd.DataFrame(y)
         df_output = pd.concat([df.iloc[:, :4], df_output], axis=1)
 
-        logging.info(df_output.head())
     except Exception as exp:
         logging.error(exp)
         raise exp
 
     return df_output
-
-
-def output_fn(df, accept):
-    """A default output_fn for PyTorch. Serializes predictions from predict_fn to JSON, CSV or NPY format.
-
-    Args:
-        df: a prediction result from predict_fn
-        accept: type which the output data needs to be serialized
-
-    Returns: output data serialized
-    """
-    logging.info(f"accept: {accept}")
-    out = StringIO()
-    df.to_csv(out, header=False, index=False, sep="\t")
-
-    # return encoder.encode(out.getvalue(), accept)
-    return out.getvalue()

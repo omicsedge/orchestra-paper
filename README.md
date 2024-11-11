@@ -56,7 +56,7 @@ Process chromosomes in pairs (with chromosomes 19-22 grouped together) using the
 
 ```bash
 mkdir -p output_training
-for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 20 21 22"; do
+for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
     # Extract chromosome range
     start_chr=$(echo $chr | cut -d' ' -f1)
     end_chr=$(echo $chr | cut -d' ' -f2)
@@ -73,7 +73,7 @@ for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 20
         -ws 600 \
         -l 3 \
         -o /output_training \
-        -v 0.01
+        -v "peruvians-0.01"
 
     echo "Done with chromosomes $start_chr-$end_chr, model saved in output_training/"
 done
@@ -95,6 +95,6 @@ docker run --rm \
     -v $(pwd)/output_inference:/output_inference \
     inference \
     -p /reference_files/example_data/inference_panel.gz \
-    -n "Peruvians" \
-    -o /output_inference
+    -o /output_inference \
+    -m /output_training/peruvians-0.01
 ```
