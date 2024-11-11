@@ -5,6 +5,9 @@ set -e  # Exit immediately if any command fails
 inference_panel=$1  # First argument: path to the inference panel VCF file
 temp_dir=$2
 
+# Create and move to a temporary directory
+echo "Working directory: $temp_dir"
+
 cd $temp_dir
 
 # Index the VCF file
@@ -12,9 +15,6 @@ bcftools index -f $inference_panel
 
 # Print the number of samples in the inference panel
 echo "Samples for inference: $(bcftools query -l $inference_panel | wc -l)"
-
-# Create and move to a temporary directory
-echo "Working directory: $temp_dir"
 
 # Create necessary subdirectories
 mkdir -p chromosomes samples commands
