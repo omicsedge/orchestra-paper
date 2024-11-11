@@ -1,20 +1,14 @@
-import json
-import math
+import logging
 import os
-import time
-import uuid
 import tempfile
+from pathlib import Path
+
+import click
+import numpy as np
 
 # import dask.dataframe as dd
 import pandas as pd
-# from scripts import (
-#     AncestryModel,
-#     convert_to_ancestry_format,
-#     get_model_registry,
-#     preprocess,
-# )
-import click
-from pathlib import Path
+from scripts import Transformer, vcf_preprocess
 
 
 def run_command(cmd: str) -> None:
@@ -29,173 +23,35 @@ def run_command(cmd: str) -> None:
 @click.option("--output-dir", "-o", type=Path, help="Output directory")
 def inference(panel: Path, name: str, output_dir: Path):
     with tempfile.TemporaryDirectory() as temp_dir:
-        print(temp_dir)
-        run_command(
-            f"bash scripts/preprocessing.sh {panel}"
-               
-        )
+        temp_path = Path(temp_dir)
+        run_command(f"bash scripts/preprocessing.sh {panel} {temp_path}")
 
-    # client = boto3.client("s3")
-    # result = client.list_objects(
-    #     Bucket=SAMPLES_SET.bucket,
-    #     Prefix=SAMPLES_SET.path,
-    #     Delimiter="/",
-    # )
+        training_path = Path("/output_training")
 
-    # folders = result["CommonPrefixes"]
-    # lines_per_file = math.ceil(len(folders) / 5)
-    # counter = 1
-    # lines = ""
-    # for i, o in enumerate(folders):
-    #     lines += (
-    #         ",".join([o["Prefix"].split("/")[-2], SAMPLES_SET.bucket, o["Prefix"]])
-    #         + "\n"
-    #     )
-    #     if (i + 1) % lines_per_file == 0:
-    #         write_file(lines, counter)
-    #         counter += 1
-    #         lines = ""
+        for submodel in training_path.iterdir():
+            logging.info(f"Running submodel {submodel}")
+            logging.info(f"Output dir: {output_dir}")
 
-    # if lines:
-    #     write_file(lines, counter)
+            sample_list_dir = output_dir / "window_results" / submodel.parts[-1]
+            model_dir = submodel / "base_layer_model" / "model"
+            vcf_preprocess(
+                input_dir=temp_path / "dataset",
+                model_dir=model_dir,
+                output_dir=sample_list_dir,
+            )
+            processor = Transformer(model_dir)
 
-    # # ## Read the Model
+            for sample_list_file in sample_list_dir.iterdir():
+                logging.info(f"Processing {sample_list_file}")
 
-    # ANCESTRY_MODEL = AncestryModel(
-    #     MODEL_DIR.model_base_path,
-    #     MODEL_DIR.model_name,
-    #     MODEL_VERSION,
-    # )
-    # SUBMODELS = ANCESTRY_MODEL._submodels
+                data = pd.read_csv(sample_list_file, sep="\t", header=None)
 
-    # # # Preprocess
-    # #
-    # # Convert dataset into windows.
+                # predict
+                processor.transform(data, output_file=f"{sample_list_file}.out")
 
-    # jobs = []
-    # for SUBMODEL_NAME in SUBMODELS:
-    #     print(f"Running submodel {SUBMODEL_NAME}")
+                y_pred = predict_fn(X, model_dir)
 
-    #     # base output path
-    #     WINDOW_OUTPUT_DIR = f"{OUTPUT_DIR.window_results}{SUBMODEL_NAME}/"
-    #     print(WINDOW_OUTPUT_DIR)
 
-    #     # model
-    #     model_registry = get_model_registry(ANCESTRY_MODEL, [SUBMODEL_NAME])
-    #     base_job_name = "vcfwindowizer"
-    #     job_name = f"{base_job_name}-{uuid.uuid4()}"
-    #     jobs.append(job_name)
-
-    #     preprocess(
-    #         input_dir=f"{OUTPUT_DIR.base}{OUTPUT_DIR.input_files}",
-    #         model_dir=model_registry["sub-models"][SUBMODEL_NAME]["model"][
-    #             "base_model_uri"
-    #         ],
-    #         output_dir=WINDOW_OUTPUT_DIR,
-    #     )
-
-    # # ### Waiting for results from preprocessing step
-
-    # client = boto3.client("sagemaker")
-    # errors = []
-
-    # while len(jobs):
-    #     print(f"{len(jobs)} left")
-    #     for job_name in jobs:
-    #         response = client.describe_processing_job(
-    #             ProcessingJobName=job_name,
-    #         )["ProcessingJobStatus"]
-
-    #         if response in ["InProgress", "Stopping"]:
-    #             time.sleep(60)
-    #             continue
-
-    #         if response in ["Failed", "Stopped"]:
-    #             errors.append(job_name)
-
-    #         indx = jobs.index(job_name)
-    #         jobs.pop(indx)
-    #         break
-
-    # for error in errors:
-    #     raise Exception(f"Processing job {error} failed.")
-
-    # print("Next step")
-
-    # # # Base Layer Inference
-
-    # jobs = []
-    # for SUBMODEL_NAME in SUBMODELS:
-    #     print(f"Running submodel {SUBMODEL_NAME}")
-    #     job_name = f"base-{uuid.uuid4()}"
-    #     jobs.append(job_name)
-
-    #     # base output path
-    #     BASE_OUTPUT_DIR = f"{OUTPUT_DIR.base_results}{SUBMODEL_NAME}/"
-    #     print(BASE_OUTPUT_DIR)
-
-    #     # create model
-    #     model_registry = get_model_registry(ANCESTRY_MODEL, [SUBMODEL_NAME])
-    #     model = Model(
-    #         image_uri=BASE_IMAGE_URI,
-    #         model_data=model_registry["sub-models"][SUBMODEL_NAME]["model"][
-    #             "base_model_uri"
-    #         ],
-    #         role=ROLE,
-    #     )
-
-    #     # create transformer
-    #     transformer = model.transformer(
-    #         instance_type="ml.m5.12xlarge",  # NOTE: for more than 2 chromosomes use ml.m5.2xlarge
-    #         instance_count=5,
-    #         output_path=BASE_OUTPUT_DIR,
-    #         strategy="MultiRecord",
-    #         max_payload=24,  # NOTE: for ml.m5.2xlarge use 4 as the payload
-    #         max_concurrent_transforms=1,
-    #         env={"MODEL_SERVER_TIMEOUT": "3600"},
-    #     )
-
-    #     # transform data
-    #     WINDOW_OUTPUT_DIR = f"{OUTPUT_DIR.window_results}{SUBMODEL_NAME}/"
-    #     transformer.transform(
-    #         data=WINDOW_OUTPUT_DIR,
-    #         content_type="text/csv",
-    #         split_type="Line",
-    #         model_client_config={
-    #             "InvocationsMaxRetries": 0,
-    #             "InvocationsTimeoutInSeconds": 3600,
-    #         },
-    #         job_name=job_name,
-    #         logs=False,
-    #         wait=False,
-    #     )
-
-    # client = boto3.client("sagemaker")
-    # errors = []
-    # while len(jobs):
-    #     print(f"{len(jobs)} left")
-    #     for job_name in jobs:
-    #         response = client.describe_transform_job(
-    #             TransformJobName=job_name,
-    #         )["TransformJobStatus"]
-
-    #         if response in ["InProgress", "Stopping"]:
-    #             time.sleep(60)
-    #             continue
-
-    #         if response in ["Failed", "Stopped"]:
-    #             errors.append(job_name)
-
-    #         indx = jobs.index(job_name)
-    #         jobs.pop(indx)
-    #         break
-
-    # for error in errors:
-    #     raise Exception(f"Batch transform job {error} failed.")
-
-    # print("Next step")
-
-    # # # Smoothing Layer Inference
 
     # jobs = []
     # for SUBMODEL_NAME in SUBMODELS:

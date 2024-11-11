@@ -77,6 +77,9 @@ def train(
 ):
     logging.info("Run preprocessing, converting zarr to parquet + windows")
     logging.info(f"Chromosomes: {start_chr}-{end_chr}")
+
+    output_dir = output_dir / f"m{start_chr}.{end_chr}"
+
     output_dir.mkdir(parents=True, exist_ok=True)
     chromosomes: List[int] = list(range(start_chr, end_chr + 1))
     cpu_count: int = os.cpu_count()
@@ -138,7 +141,7 @@ def train(
         smooth_layer_model=output_dir / "smooth_layer_model",
         base_layer_pred=output_dir / "base_inference" / "test" / "predictions.tsv.gz",
         base_layer_params=output_dir / "base_inference" / "test" / "parameters.json",
-        output_dir=output_dir / "smooth_inference" / "test",
+        output_dir=output_dir / "smooth_inference_test",
     )
     # SaveModel
     AncestryModel(
@@ -159,7 +162,7 @@ def train(
     )
     # Evaluate-final-test
     evaluate(
-        input_dir=output_dir / "smooth_inference" / "test",
+        input_dir=output_dir / "smooth_inference_test",
         output_dir=output_dir / "evaluation" / "smooth",
     )
 

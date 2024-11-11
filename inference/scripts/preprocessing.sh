@@ -3,6 +3,9 @@ set -e  # Exit immediately if any command fails
 
 # Accept command line arguments
 inference_panel=$1  # First argument: path to the inference panel VCF file
+temp_dir=$2
+
+cd $temp_dir
 
 # Index the VCF file
 bcftools index -f $inference_panel
@@ -11,8 +14,6 @@ bcftools index -f $inference_panel
 echo "Samples for inference: $(bcftools query -l $inference_panel | wc -l)"
 
 # Create and move to a temporary directory
-temp_dir=$(mktemp -d)
-cd $temp_dir
 echo "Working directory: $temp_dir"
 
 # Create necessary subdirectories
@@ -24,6 +25,8 @@ for chr in {1..22}; do
 done
 
 wait  # Wait for all chromosome splitting jobs to complete
+
+echo "Chromosomes files number: $(ls chromosomes/*.vcf.gz | wc -l)"
 
 # Extract list of all samples
 bcftools query -l $inference_panel > all.txt
@@ -54,7 +57,6 @@ for i in {1..5}; do
 done
 
 # Split commands into 5 separate shell scripts for parallel execution
-rm command_*  # Remove any existing command files
 split -l $(( ($(wc -l < commands.sh) + 4) / 5 )) commands.sh command_
 
 # Process each command file
@@ -71,3 +73,5 @@ for i in command_*; do
 done
 
 wait  # Wait for all processes to complete
+
+echo "Preprocessing complete, split infrernce dataset into 5 batches"

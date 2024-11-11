@@ -1,4 +1,8 @@
-numpy==1.26.4
+cyvcf2
+dask[dataframe]
+numba==0.60.0
+numpy==2.0.2
 pandas==2.2.3
 scikit-learn==1.5.2
-dask==2024.1.0
+torch==2.5.0
+

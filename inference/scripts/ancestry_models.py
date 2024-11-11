@@ -6,8 +6,6 @@ import tempfile
 import typing
 from urllib.parse import urlparse
 
-import boto3
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -123,12 +121,7 @@ class AncestryModel:
         self._submodels = self._get_submodels()
 
     def join(self, path_segments: typing.List[str]):
-        if self._is_pipeline:
-            from sagemaker.workflow.functions import Join
-
-            Join("/", path_segments)
-        else:
-            return os.path.join(*path_segments)
+        return os.path.join(*path_segments)
 
     @property
     def name(self):

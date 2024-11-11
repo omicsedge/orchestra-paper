@@ -2,10 +2,6 @@ import logging
 import os
 from typing import List
 
-from sagemaker.model import Model as SmModel
-from sagemaker.pipeline import PipelineModel
-from sagemaker.pytorch import PyTorchModel
-
 from . import AncestryModel
 
 logger = logging.getLogger()

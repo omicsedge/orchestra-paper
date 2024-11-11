@@ -1,22 +1,18 @@
 import logging
-import os
-import tarfile
 import typing
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple, cast
+from typing import Dict, List, Tuple, cast
 
-import boto3
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from cyvcf2 import VCF, Variant
 from dask import delayed
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 
 
 @dataclass
@@ -73,11 +69,11 @@ class Snp:
         )
 
 
-class Windowizer:
+class VcfWindowizer:
     """Convert input file into windows."""
 
-    def __init__(self, model_dir: str) -> None:
-        self._model_dir = Path(model_dir)
+    def __init__(self, model_dir: Path) -> None:
+        self._model_dir = model_dir
         self._df_snps = self._load_model_snps()
 
     def get_chromosomes(self) -> typing.List[int]:
@@ -85,9 +81,6 @@ class Windowizer:
 
     def get_windows(self, chromosome: str) -> typing.List[int]:
         return list(self._df_snps[self._df_snps.chr == chromosome].window.unique())
-
-    def read(self, filepath: str, chromosome: int) -> pd.DataFrame:
-        raise NotImplementedError()
 
     def _load_model_snps(self) -> pd.DataFrame:
         snp_files = self._model_dir.rglob("chr*/window-*/snps.tsv")
@@ -102,17 +95,7 @@ class Windowizer:
         df["window"] = int(filename.parts[-2][len("window-") :])
         return df
 
-
-class VcfWindowizer(Windowizer):
-    def _download_chromosome(self, bucket: str, key: str):
-        """Download chromosome vcf to temp file"""
-        s3 = boto3.client("s3")
-        temp_path = "/tmp/temp.vcf.gz"
-        print(f"s3://{bucket}/{key}")
-        s3.download_file(bucket, key, temp_path)
-        return temp_path
-
-    def read(self, bucket: str, filepath: str, chromosome: int):
+    def read(self, filepath: Path, chromosome: int):
         """
         Read VCF File and convert it to windowed genotype data.
 
@@ -124,11 +107,7 @@ class VcfWindowizer(Windowizer):
             dictionary with (chromosome, window) as key and numpy array with
             the shape (n_samples, n_window_size) as value.
         """
-        vcf = VCF(
-            self._download_chromosome(
-                bucket, os.path.join(filepath, f"chr{chromosome}.vcf.gz")
-            )
-        )
+        vcf = VCF(filepath / f"chr{chromosome}.vcf.gz")
         extracted: Dict[Tuple[int, str], List[List[Tuple[int, int]]]] = defaultdict(
             list
         )
@@ -157,16 +136,12 @@ class VcfWindowizer(Windowizer):
 
 
 def read_genotypes(
-    windowizer: Windowizer, chromosomes: List[int], bucket: str, input_prefix: str
+    windowizer: VcfWindowizer, chromosomes: List[int], input_prefix: str
 ) -> dict:
     data = []
     samples = None
     for chrom in chromosomes:
-        samples_, data_ = windowizer.read(
-            bucket,
-            input_prefix,
-            chrom,
-        )
+        samples_, data_ = windowizer.read(input_prefix, chrom)
 
         # get samples
         if samples is None:
@@ -180,63 +155,40 @@ def read_genotypes(
     return zip(samples, np.concatenate(data, axis=1).tolist())
 
 
-def get_sample_info(sample: dict):
-    return SampleInfo(
-        sample["user_id"],
-        sample["genome_file_id"],
-        os.path.join(sample["user_id"], "genome-files", sample["genome_file_id"]),
-    )
-
-
-def preprocess(
-    input_dir: str,
-    model_dir: str,
-    output_dir: str,
+def vcf_preprocess(
+    input_dir: Path,
+    model_dir: Path,
+    output_dir: Path,
 ):
-    # extract model
-    with open(model_dir + "model.tar.gz", "rb") as model_obj:
-        with tarfile.open(fileobj=model_obj, mode="r:gz") as tar_obj:
-            tar_obj.extractall(path=model_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # init windowizer
     windowizer = VcfWindowizer(model_dir)
+
     chroms = windowizer.get_chromosomes()
-    print(f"chromosomes: {chroms}")
 
-    print(os.listdir(model_dir))
-    path = Path(input_dir)
-    for file in path.glob("*.csv"):
-        print(f"extacting samples in {file}")
-        for file in path.glob("*.csv"):
-            print("extract samples...")
-            samples = []
-            with open(output_dir + file.name, "wb") as fout, open(file, "rt") as fin:
-                for line in fin:
-                    data = line.strip().split(",")
-                    sample_info = SampleInfo(
-                        user_id=data[0],
-                        file_id=data[0] + "_file",
-                        input_prefix=data[2],
-                    )
+    for sample_batch in input_dir.iterdir():
+        logging.info(f"extracting samples in {sample_batch}")
 
-                    genotypes = read_genotypes(
-                        windowizer, chroms, data[1], sample_info.input_prefix
-                    )
+        genotypes = read_genotypes(windowizer, chroms, sample_batch)
 
-                    for line, haplotype in genotypes:
-                        fout.write(
-                            (
-                                "\t".join(
-                                    map(
-                                        str,
-                                        [
-                                            sample_info.user_id,
-                                            sample_info.file_id,
-                                            *line,
-                                            *haplotype,
-                                        ],
-                                    )
-                                )
-                                + "\n"
-                            ).encode()
+        logging.info(f"writing to {output_dir / f'{sample_batch.parts[-1]}.tsv'}")
+
+        with open(output_dir / f"{sample_batch.parts[-1]}.tsv", "wb") as fout:
+            for line, haplotype in genotypes:
+                fout.write(
+                    (
+                        "\t".join(
+                            map(
+                                str,
+                                [
+                                    "sample_list_1",
+                                    "sample_list_1_file",
+                                    *line,
+                                    *haplotype,
+                                ],
+                            )
                         )
+                        + "\n"
+                    ).encode()
+                )
