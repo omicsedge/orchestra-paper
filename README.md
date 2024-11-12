@@ -50,6 +50,18 @@ docker run --rm \
     -o /output_simulation
 ```
 
+#### Simulation Parameters
+| Parameter | Description |
+|-----------|-------------|
+| `-sc`, `--start-chromosome` | Start chromosome number to process |
+| `-ec`, `--end-chromosome` | End chromosome number to process |
+| `-sp`, `--source-panel` | Path to the source panel VCF file containing genetic variants |
+| `-sm`, `--sample-map` | Path to the sample map TSV file that defines population structure |
+| `-v`, `--version` | Version identifier for the simulation run |
+| `-t`, `--type` | Type of simulation (e.g., "random" for random sampling) |
+| `-nt`, `--num-threads` | Number of threads to use for parallel processing |
+| `-o`, `--output` | Output directory for simulation results |
+
 ### 4. Train Models
 
 Process chromosomes in pairs (with chromosomes 19-22 grouped together) using the training pipeline:
@@ -57,11 +69,9 @@ Process chromosomes in pairs (with chromosomes 19-22 grouped together) using the
 ```bash
 mkdir -p output_training
 for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
-    # Extract chromosome range
     start_chr=$(echo $chr | cut -d' ' -f1)
     end_chr=$(echo $chr | cut -d' ' -f2)
 
-    # Run training container
     docker run --rm \
         -v $(pwd)/reference_files:/reference_files \
         -v $(pwd)/output_simulation:/output_simulation \
@@ -80,11 +90,17 @@ for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22
 done
 ```
 
-Each training run processes a pair of chromosomes with the following parameters:
-- Window size: 600
-- Training level: 3
-- Validation split: 1%
-- Output directory: ./output_training
+#### Training Parameters
+| Parameter | Description |
+|-----------|-------------|
+| `-sd`, `--simulation-dir` | Directory containing simulation output data |
+| `-sc`, `--start-chromosome` | Start chromosome number to process |
+| `-ec`, `--end-chromosome` | End chromosome number to process |
+| `-ws`, `--window-size` | Window size for processing genetic data |
+| `-l`, `--level` | Training level (complexity of the model) |
+| `-o`, `--output` | Output directory for trained models |
+| `-v`, `--version` | Version identifier for the training run |
+| `-e`, `--epochs` | Number of epochs for training |
 
 ### 5. Run Inference Pipeline
 
@@ -99,3 +115,10 @@ docker run --rm \
     -o /output_inference \
     -m /output_training/example-0.01
 ```
+
+#### Inference Parameters
+| Parameter | Description |
+|-----------|-------------|
+| `-p`, `--panel` | Path to the inference panel file containing test data |
+| `-o`, `--output` | Output directory for inference results |
+| `-m`, `--model` | Path to the trained model directory |
