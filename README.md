@@ -1,39 +1,85 @@
-# Orchestra Workflow: simulation, training and inference
-## Paper: https://www.biorxiv.org/content/10.1101/2023.09.11.557177v1
+# Orchestra Workflow: Simulation, Training and Inference
+
+[![Paper](https://img.shields.io/badge/bioRxiv-10.1101%2F2023.09.11.557177v1-blue)](https://www.biorxiv.org/content/10.1101/2023.09.11.557177v1)
+
+Orchestra is a pipeline for genetic ancestry inference using deep learning. This README provides setup and usage instructions.
 
 ## Setup Instructions
 
 ### 1. Download and Prepare Reference Files
 
-Download and process reference FASTA files (~600MB) from NCBI, converting them to the format required for SLiM simulation:
+Download and process reference FASTA files (~600MB) from NCBI:
 
 ```bash
 for chr in {1..22}; do
-    # Download chromosome files from NCBI
+    # Download chromosome files
     wget --timestamping https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_structure/Primary_Assembly/assembled_chromosomes/FASTA/chr$chr.fna.gz
     
-    # Decompress and process the files
+    # Process files
     bgzip -d chr$chr.fna.gz
     head -n 1 chr$chr.fna > header
     sed -e 's/[NRWYMKBSV]/A/g' -e '1d' -e 'y/actg/ACTG/' chr$chr.fna > chr$chr.fa
     cat header chr$chr.fa > reference_files/fasta/$chr.fa
     
-    # Clean up temporary files
+    # Cleanup
     rm header chr$chr.fa chr$chr.fna
 done
 ```
 
-### 2. Build Docker Images
+### 2. Reference Files Structure
 
-Build the required Docker images for simulation, training, and inference:
+The following files are required:
+
+| File/Directory | Description |
+|---------------|-------------|
+| `reference_files/fasta/*.fa` | Chromosome FASTA files (chr1-22) |
+| `reference_files/QC_ancestry_associated_SNP_set.hg38.keep` | QC ancestry-associated SNP set |
+| `reference_files/example_data/source_panel.vcf.gz` | Source panel for simulation |
+| `reference_files/example_data/sample_map.tsv` | Population structure definitions |
+| `reference_files/example_data/inference_panel.gz` | Test data for inference |
+
+#### File Format Specifications
+
+<details>
+<summary><strong>FASTA Files</strong> (*.fa)</summary>
+
+- One file per chromosome (chr1.fa to chr22.fa)
+- Contains reference genome sequence
+- Processed from NCBI reference files
+</details>
+
+<details>
+<summary><strong>Ancestry SNP Set</strong> (QC_ancestry_associated_SNP_set.hg38.keep)</summary>
+
+- Space-separated text file
+- Contains 1,202,443 ancestry-informative variants
+- Format: `CHROM POS REF ALT`
+- Based on hg38/GRCh38 assembly
+</details>
+
+<details>
+<summary><strong>Source Panel</strong> (source_panel.vcf.gz)</summary>
+
+- Compressed VCF format
+- Contains genetic variants for simulation
+- Required fields: CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO
+</details>
+
+<details>
+<summary><strong>Sample Map</strong> (sample_map.tsv)</summary>
+
+- Tab-separated values
+- Defines population structure
+- Required columns: Sample ID, Population, Super Population
+</details>
+
+### 3. Build Docker Images
 
 ```bash
 make build
 ```
 
-### 3. Run Simulation Pipeline
-
-Execute the simulation using Docker with the following parameters:
+### 4. Run Simulation Pipeline
 
 ```bash
 mkdir -p output_simulation
@@ -50,21 +96,24 @@ docker run --rm \
     -o /output_simulation
 ```
 
-#### Simulation Parameters
+<details>
+<summary><strong>Simulation Parameters</strong></summary>
+
 | Parameter | Description |
 |-----------|-------------|
-| `-sc`, `--start-chromosome` | Start chromosome number to process |
-| `-ec`, `--end-chromosome` | End chromosome number to process |
-| `-sp`, `--source-panel` | Path to the source panel VCF file containing genetic variants |
-| `-sm`, `--sample-map` | Path to the sample map TSV file that defines population structure |
-| `-v`, `--version` | Version identifier for the simulation run |
-| `-t`, `--type` | Type of simulation (e.g., "random" for random sampling) |
-| `-nt`, `--num-threads` | Number of threads to use for parallel processing |
-| `-o`, `--output` | Output directory for simulation results |
+| `-sc`, `--start-chromosome` | Start chromosome number |
+| `-ec`, `--end-chromosome` | End chromosome number |
+| `-sp`, `--source-panel` | Source panel VCF path |
+| `-sm`, `--sample-map` | Sample map TSV path |
+| `-v`, `--version` | Version identifier |
+| `-t`, `--type` | Simulation type |
+| `-nt`, `--num-threads` | Number of threads |
+| `-o`, `--output` | Output directory |
+</details>
 
-### 4. Train Models
+### 5. Train Models
 
-Process chromosomes in pairs (with chromosomes 19-22 grouped together) using the training pipeline:
+Process chromosomes in pairs (smallest 19-22 chromosomes grouped together):
 
 ```bash
 mkdir -p output_training
@@ -86,23 +135,26 @@ for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22
         -v "example-0.01" \
         -e 100
 
-    echo "Done with chromosomes $start_chr-$end_chr, model saved in output_training/"
+    echo "✓ Completed chromosomes $start_chr-$end_chr"
 done
 ```
 
-#### Training Parameters
+<details>
+<summary><strong>Training Parameters</strong></summary>
+
 | Parameter | Description |
 |-----------|-------------|
-| `-sd`, `--simulation-dir` | Directory containing simulation output data |
-| `-sc`, `--start-chromosome` | Start chromosome number to process |
-| `-ec`, `--end-chromosome` | End chromosome number to process |
-| `-ws`, `--window-size` | Window size for processing genetic data |
-| `-l`, `--level` | Training level (complexity of the model) |
-| `-o`, `--output` | Output directory for trained models |
-| `-v`, `--version` | Version identifier for the training run |
-| `-e`, `--epochs` | Number of epochs for training |
+| `-sd`, `--simulation-dir` | Simulation data directory |
+| `-sc`, `--start-chromosome` | Start chromosome |
+| `-ec`, `--end-chromosome` | End chromosome |
+| `-ws`, `--window-size` | Processing window size |
+| `-l`, `--level` | Model complexity level |
+| `-o`, `--output` | Output directory |
+| `-v`, `--version` | Version identifier |
+| `-e`, `--epochs` | Training epochs |
+</details>
 
-### 5. Run Inference Pipeline
+### 6. Run Inference Pipeline
 
 ```bash
 mkdir -p output_inference
@@ -116,9 +168,12 @@ docker run --rm \
     -m /output_training/example-0.01
 ```
 
-#### Inference Parameters
+<details>
+<summary><strong>Inference Parameters</strong></summary>
+
 | Parameter | Description |
 |-----------|-------------|
-| `-p`, `--panel` | Path to the inference panel file containing test data |
-| `-o`, `--output` | Output directory for inference results |
-| `-m`, `--model` | Path to the trained model directory |
+| `-p`, `--panel` | Inference panel path |
+| `-o`, `--output` | Output directory |
+| `-m`, `--model` | Trained model directory |
+</details>
