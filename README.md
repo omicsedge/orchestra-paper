@@ -34,6 +34,7 @@ The following files are required:
 |---------------|-------------|
 | `reference_files/fasta/*.fa` | Chromosome FASTA files (chr1-22) |
 | `reference_files/QC_ancestry_associated_SNP_set.hg38.keep` | QC ancestry-associated SNP set |
+| `reference_files/Ancestry_regions.hg38.txt` | Ancestry regions definition file |
 | `reference_files/example_data/source_panel.vcf.gz` | Source panel for simulation |
 | `reference_files/example_data/sample_map.tsv` | Population structure definitions |
 | `reference_files/example_data/inference_panel.gz` | Test data for inference |
@@ -54,6 +55,15 @@ The following files are required:
 - Space-separated text file
 - Contains 1,202,443 ancestry-informative variants
 - Format: `CHROM POS REF ALT`
+- Based on hg38/GRCh38 assembly
+</details>
+
+<details>
+<summary><strong>Ancestry Regions</strong> (Ancestry_regions.hg38.txt)</summary>
+
+- Tab-separated text file
+- Defines genomic regions for ancestry analysis
+- Format: `CHROM START_POS END_POS`
 - Based on hg38/GRCh38 assembly
 </details>
 
