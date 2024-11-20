@@ -1,21 +1,53 @@
-MIT License
+# Non-Commercial Use License
+### Version 1.0
 
-Copyright (c) 2024 OmicsEdge
+## NOTICE
+This software is provided free of charge for **academic research use only**. Any use by **commercial entities, for-profit organizations, or consultants** is strictly prohibited without prior authorization. For inquiries about commercial licensing, contact **pyazdi@gmail.com**.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+By using this software, you agree to the following terms:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+---
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## 1. License Grant
+1.1. Academic users are granted a non-exclusive, non-transferable, royalty-free license to use, modify, and improve this software for **academic research purposes only**.  
+1.2. Academic users may fork this repository to suit their research needs, provided:  
+   - All modifications and derivatives inherit these licensing terms.  
+   - A clear attribution to the original software and this licensing notice is retained in the forked repository.  
+
+---
+
+## 2. Commercial Use
+2.1. Commercial use of this software or its derivatives is **strictly prohibited** without prior written consent from the copyright holder.  
+2.2. Commercial users, for-profit organizations, and consultants must obtain a license by contacting **pyazdi@gmail.com**.
+
+---
+
+## 3. Restrictions
+3.1. Redistribution of this software is permitted only for academic research purposes and must include this license in its entirety.  
+3.2. Use of the software for any of the following purposes is prohibited:  
+   - Commercial exploitation, including but not limited to providing services, selling, licensing, or integrating the software into a commercial product.  
+   - Any activity that does not directly support academic research.  
+
+---
+
+## 4. Disclaimer
+4.1. THIS SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+## 5. Acknowledgment
+5.1. Academic users must cite this software in publications or other academic outputs that result from its use.  
+5.2. The following citation is required:  
+**D., Bamunusinghe, V., Hatorangan, M.R., Manson, C., Pedersen, H., Osama, A., Terpolovsky, A., Bohn, S., De Marino, A., Mahmoud, A.A., Bircan, K.O., Khan, U., Grabherr, M.G., Yazdi, P.G. Retracing Human Genetic Histories and Natural Selection Using Precise Local Ancestry Inference. bioRxiv 2023.09.11.557177; doi: https://doi.org/10.1101/2023.09.11.557177**
+
+---
+
+## 6. Termination
+6.1. This license is terminated automatically if the user violates any of its terms.  
+6.2. Upon termination, the user must destroy all copies of the software and cease all use.  
+
+---
+
+## 7. Contact for Commercial Use
+For commercial licensing, please contact:  
+- **Email**: pyazdi@gmail.com
