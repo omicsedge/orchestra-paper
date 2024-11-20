@@ -1,9 +1,3 @@
-# Non-Commercial Use License
-### Version 1.0
-
-## NOTICE
-This software is provided free of charge for **academic research use only**. Any use by **commercial entities, for-profit organizations, or consultants** is strictly prohibited without prior authorization. For inquiries about commercial licensing, contact **pyazdi@gmail.com**.
-# Orchestra Workflow: Simulation, Training and Inference
 
 [![Paper](https://img.shields.io/badge/bioRxiv-10.1101%2F2023.09.11.557177v1-blue)](https://www.biorxiv.org/content/10.1101/2023.09.11.557177v1)
 
@@ -192,3 +186,10 @@ docker run --rm \
 | `-o`, `--output` | Output directory |
 | `-m`, `--model` | Trained model directory |
 </details>
+
+# Non-Commercial Use License
+### Version 1.0
+
+## NOTICE
+This software is provided free of charge for **academic research use only**. Any use by **commercial entities, for-profit organizations, or consultants** is strictly prohibited without prior authorization. For inquiries about commercial licensing, contact **pyazdi@gmail.com**.
+# Orchestra Workflow: Simulation, Training and Inference
