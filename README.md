@@ -187,9 +187,12 @@ docker run --rm \
 | `-m`, `--model` | Trained model directory |
 </details>
 
+## References
+* Lerga-Jaso, J., Novković, B., Unnikrishnan, D., Bamunusinghe, V., Hatorangan, M.R., Manson, C., Pedersen, H., Osama, A., Terpolovsky, A., Bohn, S., De Marino, A., Mahmoud, A.A., Bircan, K.O., Khan, U., Grabherr, M.G., Yazdi, P.G. Retracing Human Genetic Histories and Natural Selection Using Precise Local Ancestry Inference. bioRxiv 2023.09.11.557177; doi: https://doi.org/10.1101/2023.09.11.557177
+* Cuadros-Espinoza, S., Laval, G., Quintana-Murci, L., Patin, E. The genomic signatures of natural selection in admixed human populations. Am. J. Hum. Genet. 109, 710-726 (2022). doi: 10.1016/j.ajhg.2022.02.011; pmid: 35259336
+
 # Non-Commercial Use License
 ### Version 1.0
 
 ## NOTICE
 This software is provided free of charge for **academic research use only**. Any use by **commercial entities, for-profit organizations, or consultants** is strictly prohibited without prior authorization. For inquiries about commercial licensing, contact **pyazdi@gmail.com**.
-# Orchestra Workflow: Simulation, Training and Inference
