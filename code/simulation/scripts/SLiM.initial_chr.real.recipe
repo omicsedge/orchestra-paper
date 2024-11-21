@@ -1,0 +1,325 @@
+
+//#############################################################################
+// Initialize: nonWF model + nucleotideBased + TreeSeq + HapMap recombination #
+//#############################################################################
+initialize() {
+    // Appropriate model type
+	initializeSLiMModelType("nonWF");
+    initializeSLiMOptions(keepPedigrees=T, nucleotideBased=T);
+    initializeTreeSeq();
+    length = initializeAncestralNucleotides("/data/fasta/PARAMETER_CHR.fa");
+	defineConstant("L", length);
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(0.0)); // if mmJukesCantor(0.0)) -> only genetic drift, no selection
+	initializeGenomicElement(g1, 0, L-1);
+	
+	// HapMap recombination map
+    lines = readFile("/data/hapmap_recomb_hg38/PARAMETER_CHR.txt");
+	lines = lines[1:(size(lines)-1)];
+	rates = NULL;
+	ends = NULL;
+	for (line in lines)  {  
+		components = strsplit(line, " ");
+		ends = c(ends, asInteger(components[0]));
+		rates = c(rates, asFloat(components[1]));
+	}
+	ends = c(ends[1:(size(ends)-1)] - 2, length-1);
+	rates = rates * 1e-8;
+	initializeRecombinationRate(rates, ends);
+	// Delete any existing pedigree log files
+	deleteFile("mating.txt");
+	deleteFile("death.txt");
+}
+//#####################################################
+// First generation:                                  #
+// * Load VCF with individuals per population         #
+// * Provide initial tags and remember next tag value #
+//#####################################################
+1 early() {
+    // Load GType data by superpop (EUR, EAS, SAS, AFR, AMR)
+	sim.addSubpop("p1", PARAMETER_EUR_SAMPLESIZE);
+	p1.genomes.readFromVCF("data.EUR.vcf", m1);
+
+	sim.addSubpop("p2", PARAMETER_EAS_SAMPLESIZE);
+	p2.genomes.readFromVCF("data.EAS.vcf", m1);
+	
+	sim.addSubpop("p3", PARAMETER_SAS_SAMPLESIZE);
+	p3.genomes.readFromVCF("data.SAS.vcf", m1);
+	
+	sim.addSubpop("p4", PARAMETER_AFR_SAMPLESIZE);
+	p4.genomes.readFromVCF("data.AFR.vcf", m1);
+
+	sim.addSubpop("p5", PARAMETER_AMR_SAMPLESIZE);
+	p5.genomes.readFromVCF("data.AMR.vcf", m1);
+
+    // Provide initial tags and remember the next tag value
+    p1.individuals.tag = 1:PARAMETER_EUR_SAMPLESIZE;
+    p2.individuals.tag = (PARAMETER_EUR_SAMPLESIZE+1):(PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE);
+    p3.individuals.tag = (PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+1):(PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+PARAMETER_SAS_SAMPLESIZE);
+    p4.individuals.tag = (PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+PARAMETER_SAS_SAMPLESIZE+1):(PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+PARAMETER_SAS_SAMPLESIZE+PARAMETER_AFR_SAMPLESIZE);
+	p5.individuals.tag = (PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+PARAMETER_SAS_SAMPLESIZE+PARAMETER_AFR_SAMPLESIZE+1):(PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+PARAMETER_SAS_SAMPLESIZE+PARAMETER_AFR_SAMPLESIZE+PARAMETER_AMR_SAMPLESIZE);
+	 sim.tag = (PARAMETER_EUR_SAMPLESIZE+PARAMETER_EAS_SAMPLESIZE+PARAMETER_SAS_SAMPLESIZE+PARAMETER_AFR_SAMPLESIZE+PARAMETER_AMR_SAMPLESIZE+1);
+
+    // Trace the ancestry at each position in each individual. This function explicitly retains the first-generation individuals
+    sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+
+//########################################################
+// Reproduction:                                         #
+// * Parents are chosen randomly & generate offspring    #
+// * Avoid inbreeding                                    #
+// * Track pedigree and produce output file recording it #
+//########################################################
+reproduction() {
+    // New population sizes
+	if (sim.generation == PARAMETER_GENERATIONS_N)
+	{
+	    SampleSize_p1 = asInteger(PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_EUR/DIVISION_PARAMETER);
+   	    SampleSize_p2 = asInteger(PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_EAS/DIVISION_PARAMETER);
+   	    SampleSize_p3 = asInteger(PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_SAS/DIVISION_PARAMETER);
+   	    SampleSize_p4 = asInteger(PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_AFR/DIVISION_PARAMETER);
+		SampleSize_p5 = asInteger(PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_AMR/DIVISION_PARAMETER);
+   }
+	else
+	{
+		SampleSize_p1 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_EUR;
+   	    SampleSize_p2 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_EAS;
+   	    SampleSize_p3 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_SAS;
+   	    SampleSize_p4 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_AFR;
+		SampleSize_p5 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_AMR;
+   }
+
+    // parents are chosen randomly
+    // p1
+	parents1 = p1.sampleIndividuals(SampleSize_p1, replace=T);  
+    for (i in seqLen(SampleSize_p1))
+    {
+        firstParent = parents1[i];
+
+        // Avoid close relatives as mates
+        do secondParent = p1.sampleIndividuals(1, exclude=firstParent);
+        while (firstParent.relatedness(secondParent) >= 0.0625);
+
+        child = p1.addCrossed(firstParent, secondParent); 
+        child.tag = sim.tag;
+	    sim.tag = sim.tag + 1;
+
+        // log the mating
+        line = paste(sim.generation, firstParent.tag, secondParent.tag, child.tag);  
+        writeFile("mating.txt", line, append=T); 
+	 }
+	 
+	 // p2
+	 parents1 = p2.sampleIndividuals(SampleSize_p2, replace=T);  
+     for (i in seqLen(SampleSize_p2))
+     {
+        firstParent = parents1[i];
+
+        // Avoid close relatives as mates
+        do secondParent = p2.sampleIndividuals(1, exclude=firstParent);
+        while (firstParent.relatedness(secondParent) >= 0.0625);
+
+        child = p2.addCrossed(firstParent, secondParent); 
+        child.tag = sim.tag;
+	    sim.tag = sim.tag + 1;
+
+        // log the mating
+        line = paste(sim.generation, firstParent.tag, secondParent.tag, child.tag);  
+        writeFile("mating.txt", line, append=T); 
+	 }
+	 
+	 // p3
+	 parents1 = p3.sampleIndividuals(SampleSize_p3, replace=T);  
+     for (i in seqLen(SampleSize_p3))
+     {
+        firstParent = parents1[i];
+
+        // Avoid close relatives as mates
+        do secondParent = p3.sampleIndividuals(1, exclude=firstParent);
+        while (firstParent.relatedness(secondParent) >= 0.0625);
+
+        child = p3.addCrossed(firstParent, secondParent); 
+        child.tag = sim.tag;
+	     sim.tag = sim.tag + 1;
+
+        // log the mating
+        line = paste(sim.generation, firstParent.tag, secondParent.tag, child.tag);  
+        writeFile("mating.txt", line, append=T); 
+	 }
+	 
+	 // p4
+	 parents1 = p4.sampleIndividuals(SampleSize_p4, replace=T);  
+     for (i in seqLen(SampleSize_p4))
+     {
+        firstParent = parents1[i];
+
+        // Avoid close relatives as mates
+        do secondParent = p4.sampleIndividuals(1, exclude=firstParent);
+        while (firstParent.relatedness(secondParent) >= 0.0625);
+
+        child = p4.addCrossed(firstParent, secondParent); 
+        child.tag = sim.tag;
+	     sim.tag = sim.tag + 1;
+
+        // log the mating
+        line = paste(sim.generation, firstParent.tag, secondParent.tag, child.tag);  
+        writeFile("mating.txt", line, append=T); 
+	 }
+
+	 // p5
+	 parents1 = p5.sampleIndividuals(SampleSize_p5, replace=T);  
+     for (i in seqLen(SampleSize_p5))
+     {
+        firstParent = parents1[i];
+
+        // Avoid close relatives as mates
+        do secondParent = p5.sampleIndividuals(1, exclude=firstParent);
+        while (firstParent.relatedness(secondParent) >= 0.0625);
+
+        child = p5.addCrossed(firstParent, secondParent); 
+        child.tag = sim.tag;
+	     sim.tag = sim.tag + 1;
+
+        // log the mating
+        line = paste(sim.generation, firstParent.tag, secondParent.tag, child.tag);  
+        writeFile("mating.txt", line, append=T); 
+	 }
+	 
+     self.active = 0; 
+	 
+     self.active = 0; 
+
+}
+
+
+//#######################################################################################################
+// Survival selection: next generation replace completely previous one (parents die; offspring survive) #
+//#######################################################################################################
+survival() { 
+    if (individual.age != 0) { 
+    		// log the death
+    		line = sim.generation + " " + individual.tag;
+    		writeFile("death.txt", line, append=T);
+    } 
+    return (individual.age == 0); 
+}
+
+
+//####################
+// Track generations #
+//####################
+1:PARAMETER_GENERATIONS_N first() {
+    catn("Generation: " + sim.generation);
+}
+
+
+//#######################
+// Output tree sequence #
+//#######################
+PARAMETER_GENERATIONS_N late() { 
+    sim.treeSeqOutput("output.trees");
+}
+
+
+//####################################################
+// Migration:                                        #
+// * Migration rate (10% of total individuals)       #
+// * Same probability of migrating to other superpop #
+//####################################################
+late() {
+	//Population sizes
+	if (sim.generation == 1)
+	{
+	    SampleSize_p1 = PARAMETER_EUR_SAMPLESIZE;
+   	    SampleSize_p2 = PARAMETER_EAS_SAMPLESIZE;
+   	    SampleSize_p3 = PARAMETER_SAS_SAMPLESIZE;
+   	    SampleSize_p4 = PARAMETER_AFR_SAMPLESIZE;
+		SampleSize_p5 = PARAMETER_AMR_SAMPLESIZE;
+    }
+	else
+	{
+		SampleSize_p1 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_EUR;
+   	    SampleSize_p2 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_EAS;
+   	    SampleSize_p3 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_SAS;
+   	    SampleSize_p4 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_AFR;
+		SampleSize_p5 = PARAMETER_NUMBER_SIMULATED_INDIVIDUALS_AMR;
+    }
+
+	// Migration (10% of individuals as migrants per generation)
+	migration_rate=0.1;
+	total_sample_size = SampleSize_p1+SampleSize_p2+SampleSize_p3+SampleSize_p4+SampleSize_p5;
+	nMigrants_perSuperpop = asInteger(round((migration_rate*total_sample_size)/4));
+
+	migrants_from_p1 = p1.sampleIndividuals(nMigrants_perSuperpop, replace=F);
+	migrants_from_p2 = p2.sampleIndividuals(nMigrants_perSuperpop, replace=F);
+	migrants_from_p3 = p3.sampleIndividuals(nMigrants_perSuperpop, replace=F);
+	migrants_from_p4 = p4.sampleIndividuals(nMigrants_perSuperpop, replace=F);
+	migrants_from_p5 = p5.sampleIndividuals(nMigrants_perSuperpop, replace=F);
+	
+	for (migrant in migrants_from_p1)
+	{
+		random_n = runif(1);
+		if (random_n < 1/4)
+			p2.takeMigrants(migrant);
+		else if (random_n < 2/4)
+			p3.takeMigrants(migrant);
+		else if (random_n < 3/4)
+			p4.takeMigrants(migrant);
+		else
+			p5.takeMigrants(migrant);
+	}
+
+	for (migrant in migrants_from_p2)
+	{
+		random_n = runif(1);
+		if (random_n < 1/4)
+			p1.takeMigrants(migrant);
+		else if (random_n < 2/4)
+			p3.takeMigrants(migrant);
+		else if (random_n < 3/4)
+			p4.takeMigrants(migrant);
+		else
+			p5.takeMigrants(migrant);
+	}
+
+	for (migrant in migrants_from_p3)
+	{
+		random_n = runif(1);
+		if (random_n < 1/4)
+			p2.takeMigrants(migrant);
+		else if (random_n < 2/4)
+			p1.takeMigrants(migrant);
+		else if (random_n < 3/4)
+			p4.takeMigrants(migrant);
+		else
+			p5.takeMigrants(migrant);
+	}
+
+	for (migrant in migrants_from_p4)
+	{
+		random_n = runif(1);
+		if (random_n < 1/4)
+			p2.takeMigrants(migrant);
+		else if (random_n < 2/4)
+			p3.takeMigrants(migrant);
+		else if (random_n < 3/4)
+			p1.takeMigrants(migrant);
+		else
+			p5.takeMigrants(migrant);
+	}
+
+	for (migrant in migrants_from_p5)
+	{
+		random_n = runif(1);
+		if (random_n < 1/4)
+			p2.takeMigrants(migrant);
+		else if (random_n < 2/4)
+			p3.takeMigrants(migrant);
+		else if (random_n < 3/4)
+			p4.takeMigrants(migrant);
+		else
+			p1.takeMigrants(migrant);
+	}
+}
+

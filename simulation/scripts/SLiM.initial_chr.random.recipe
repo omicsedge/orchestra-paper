@@ -6,14 +6,14 @@ initialize() {
     initializeSLiMModelType("nonWF");
     initializeSLiMOptions(keepPedigrees=T, nucleotideBased=T);
     initializeTreeSeq();
-    length = initializeAncestralNucleotides("/reference_files/fasta/PARAMETER_CHR.fa");
+    length = initializeAncestralNucleotides("/data/fasta/PARAMETER_CHR.fa");
     defineConstant("L", length);
     initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
     initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(0.0)); // if mmJukesCantor(0.0)) -> only genetic drift, no selection
     initializeGenomicElement(g1, 0, L-1);
 
     // HapMap recombination map
-    lines = readFile("/reference_files/hapmap_recomb_hg38/PARAMETER_CHR.txt");
+    lines = readFile("/data/hapmap_recomb_hg38/PARAMETER_CHR.txt");
     lines = lines[1:(size(lines)-1)];
     rates = NULL;
     ends = NULL;

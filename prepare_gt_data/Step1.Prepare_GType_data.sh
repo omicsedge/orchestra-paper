@@ -80,14 +80,14 @@ analysis_folder=""
 
 
 ### Get SNP sets into VCF format ###
-## Download our ancestry-associated and batch-corrected SNP set from GitHub: QC_ancestry_associated_SNP_set.hg38.keep
+## Download our ancestry-associated and batch-corrected SNP set from GitHub: /reference_files/QC_ancestry_associated_SNP_set.hg38.keep
 ## (this SNP set was for the custom-35pop reference panel used as input for Orchestra in our article Lerga-Jaso et al.)
 
 cd $analysis_folder
 
 echo '##fileformat=VCFv4.3
 #CHROM POS ID REF ALT QUAL FILTER INFO' | tr ' ' '\t' > QC_ancestry_associated_SNP_set.hg38.vcf
-cat QC_ancestry_associated_SNP_set.hg38.keep | awk '{print $1,$2,".",$3,$4,".",".","."}' | sed 's/^/chr/g' | tr ' ' '\t' >> QC_ancestry_associated_SNP_set.hg38.vcf
+cat /reference_files/QC_ancestry_associated_SNP_set.hg38.keep | awk '{print $1,$2,".",$3,$4,".",".","."}' | sed 's/^/chr/g' | tr ' ' '\t' >> QC_ancestry_associated_SNP_set.hg38.vcf
 bgzip QC_ancestry_associated_SNP_set.hg38.vcf
 tabix -p vcf QC_ancestry_associated_SNP_set.hg38.vcf.gz
 
