@@ -1,3 +1,14 @@
+############################################################
+# IMPORTANT. PLEASE READ BEFORE EXECUTING THIS TOY EXAMPLE #
+############################################################
+#
+# The initial portion of this script serves as a guide for those who choose to independently retrieve and prepare publicly available genotype data from the 1000 Genomes Project, 
+# the Human Genome Diversity Project, and the Simons Genome Diversity Project for selection signal analysis. 
+# However, it is recommended to use the SNP frequency files already calculated for the admixed target panel and reference population available in CodeOcean. 
+# Begin from the 'Harmonize frequencies across same set of SNPs (source panels)' section and continue to calculate the Fadm score. 
+# Please proceed accordingly.
+#
+#########################################################################################################################################################################################################
 
 #######################
 ## PRELIMINARY STEPS ##
@@ -10,6 +21,7 @@
 
 
 ### Pathways (change accordingly) ###
+# Use same analysis folder as in previous scripts
 plink2_path=""
 analysis_folder=""
 Fadm_statistic_calc_folder="$analysis_folder/Fadm_estimation"
@@ -125,6 +137,8 @@ parallel --jobs 22 get_freq ::: {1..22} ::: $plink2_path
 rm *.log
 
 
+
+#########################################################################################################################################################################################################
 
 ###################################################################
 ## Harmonize frequencies across same set of SNPs (source panels) ##
@@ -521,7 +535,3 @@ echo "
 " > Rcommand.R
 Rscript Rcommand.R
 rm Rcommand.R
-
-
-
-

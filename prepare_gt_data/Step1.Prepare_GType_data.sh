@@ -1,9 +1,13 @@
-##########################################################################
-# PLEASE READ BEFORE EXECUTING THIS SCRIPT #
-############################################
+############################################################
+# IMPORTANT. PLEASE READ BEFORE EXECUTING THIS TOY EXAMPLE #
+############################################################
 #
 ####
-# This step details the process for retrieving and preparing publicly available genotype data from the 1000 Genomes Project and the Human Genome Diversity Project for Local Ancestry Inference analysis using Orchestra.
+# This step is merely a guide that outlines the process for obtaining and preparing publicly available genotype data from the 1000 Genomes Project, the Human Genome Diversity Project, 
+# and the Simons Genome Diversity Project for local ancestry inference analysis using Orchestra. While this protocol guides you to assemble the same reference and source population panels, 
+# we excluded the direct retrieval of SGDP data due to the size and download demands of these datasets. Instead, we have preloaded these panels for your use, and it is advisable to utilize 
+# them as they include SGDP samples. Please proceed accordingly.
+#
 #
 ## Target admixed dataset:
 # - Admixed Mexicans in Los Angeles, which was collected as part of the 1000 Genomes Project
@@ -11,21 +15,39 @@
 ## Reference panel comprising ancestral source populations:
 # - Spanish (Iberians from 1000 Genomes Project)
 # - Sub-Saharan Africans (Yoruba from 1000 Genomes Project)
-# - Native Americans (Mayan and Pima populations from the Human Genome Diversity Project)
+# - Native Americans (Mayan and Pima populations from the Human Genome Diversity Project, and Mixe and Zapotec populations from the Simons Genome Diversity Project)
 # 
 # 
 ####
 # Analyses: 
-# (1) If you choose to move directly into the Orchestra LAI analysis, we have uploaded a dataset that is ready for use. 
+# (1) LAI analysis and LAD score:
+# We have uploaded datasets that are ready for use with Orchestra for LAI analysis
 # This dataset includes the target admixed population, the reference panel with ancestral source populations, and the SNP set featured in our article, which includes ancestry-associated and batch-corrected variants. 
-# There is no need to retrieve or impute any data: you can retrieve the panels, merge source panels into a reference panel and go directly to Step2, and immediately utilize the provided panels for your LAI analysis with Orchestra.
+# There is no need to retrieve or impute any data: you can retrieve those panels, merge source panels into a reference panel and proceed directly to Step2, immediately utilizing the provided panels for your LAI analysis with Orchestra.
+# If you prefer to prepare the panels yourself, we have provided this Step 1 as a guide.
 #
-# (2) If you wish to conduct a comprehensive analysis and also explore selection signals from adaptive admixture, calculating Fadm statistics in the process, you will need to access the complete genotype information. 
+# (2) Fadm score and selection signal:
+# If you wish to conduct a comprehensive analysis and also explore selection signals from adaptive admixture, calculating Fadm statistics in the process, you will need to access the complete genotype information. 
 # You can obtain this dataset either through your own methods or by following this protocol completely.
 # In this regard, this dataset should contain all SNPs (after applying a Minor Allele Frequency threshold to exclude low-frequency or rare variants) for frequency calculation. 
 # We have also uploaded the SNP frequencies, including those observed in admixed Mexicans and those expected based on the ancestral source populations and global admixture proportions, to facilitate the calculation of Fadm statistics.
 # Thus, you can skip the steps focused on obtaining this data and just proceed directly to the key sections.
 #
+#
+####
+# Recommended protocol:
+# 1) No need to run Step1. Just run 'bcftools merge' (bcftools merge Source_NativeAmericans.reference_panel.vcf.gz Source_Europeans.reference_panel.vcf.gz Source_Africans.reference_panel.vcf.gz -Oz -o Source_panel.vcf.gz)
+# to merge the source panels provided in GitHub/CodeOcean into a single reference panel that is ready for use with Orchestra. Redo folder structure pathways as this Step1 guide.
+# - Target genotype data: Admixed_Mexicans.target_panel.vcf.gz
+# - Sample ID-population membership map: SampleTable.forTrainings
+# - Reference genotype data: Source_Africans.reference_panel.vcf.gz, Source_Europeans.reference_panel.vcf.gz and Source_NativeAmericans.reference_panel.vcf.gz (these should be merged: Source_panel.vcf.gz)
+#
+# 2) Run Orchestra with target (Admixed_Mexicans.target_panel.vcf.gz) and reference (Source_panel.vcf.gz) panels
+# 3) Get LAD score (take inferred local ancestry results from Orchesra in output_inference/summary_results/smooth_samples.chr*.tsv.gz)
+# 4) Get Fadm score. No need to run Step4 completely. Simply utilize the provided SNP frequency data located in the /reference_files/observed_and_expected_frequencies_for_Fadm folder. 
+# Start from the 'Harmonize frequencies across same set of SNPs (source panels)' section and proceed to calculate the Fadm score using the expected and observed SNP frequencies provided.
+#
+# 5) Get final Manhattan plot and discover the selection signals
 ##########################################################################
 
 
@@ -47,6 +69,7 @@
 
 
 ### Pathways (change accordingly) ###
+# Ensure you use the same analysis_folder consistently throughout all script steps in the toy example.
 picard_path=""
 folder_with_liftover_files=""
 
@@ -110,6 +133,9 @@ cat samples_1kgp.EUR.source.keep samples_1kgp.AFR.source.keep > samples_1kgp.sou
 # Source data (HGDP)
 echo 'HGDP00854,HGDP00855,HGDP00856,HGDP00857,HGDP00858,HGDP00859,HGDP00860,HGDP00861,HGDP00862,HGDP00863,HGDP00864,HGDP00865,HGDP00868,HGDP00869,HGDP00870,HGDP00871,HGDP00872,HGDP00873,
 HGDP00875,HGDP00876,HGDP00877,HGDP01037,HGDP01041,HGDP01043,HGDP01044,HGDP01050,HGDP01053,HGDP01055,HGDP01056,HGDP01057,HGDP01058,HGDP01059,HGDP01060' | tr ',' '\n' > samples_hgdp.NAM.source.keep 
+
+# Source data (SGDP)
+echo 'S_Mixe-2,B_Mixe-1,S_Mixe-3,S_Zapotec-1' | tr ',' '\n' > samples_sgdp.NAM.source.keep 
 
 # Admixed population (1KGP)
 echo 'NA19648,NA19649,NA19651,NA19652,NA19654,NA19655,NA19657,NA19658,NA19660,NA19661,NA19663,NA19664,NA19669,NA19670,NA19676,NA19678,NA19679,NA19681,NA19682,NA19684,NA19716,NA19717,NA19719,
@@ -290,7 +316,7 @@ rm rename_chrs.txt rename_chrs.reverse.txt
 ################################
 #
 # We did not include the code for obtaining SGDP data to keep the setup simple and quick. 
-# However, the uploaded genotype data includes additional SGDP individuals. Zapotec and Mixe individuals can be added to the reference panel using the same methods previously outlined:
+# However, the uploaded genotype data includes additional SGDP individuals. Zapotec and Mixe individuals should be added to the reference panel using the same methods previously outlined:
 # 
 # - Mixe: mixe0002 (S_Mixe-2), mixe0007 (B_Mixe-1), mixe0042 (S_Mixe-3)
 # - Zapotec: zapo0098 (S_Zapotec-1)
@@ -638,11 +664,19 @@ mv samples_1kgp.EUR.source.keep Target_and_reference_panels/subsets_and_samples/
 
 cd Target_and_reference_panels/
 
+
+### Remove chr annotation from VCFs ###
+echo 'chr1 1,chr2 2,chr3 3,chr4 4,chr5 5,chr6 6,chr7 7,chr8 8,chr9 9,chr10 10,chr11 11,chr12 12,chr13 13,chr14 14,chr15 15,chr16 16,chr17 17,chr18 18,chr19 19,chr20 20,chr21 21,chr22 22' | tr ',' '\n' > rename_chrs.txt
+bcftools annotate --rename-chrs rename_chrs.txt Source_panel.vcf.gz -Oz -o Source_panel.nochr.vcf.gz
+bcftools annotate --rename-chrs rename_chrs.txt Admixed_Mexicans.vcf.gz -Oz -o Admixed_Mexicans.nochr.vcf.gz
+mv Source_panel.nochr.vcf.gz Source_panel.vcf.gz
+mv Admixed_Mexicans.nochr.vcf.gz Admixed_Mexicans.vcf.gz
+rm rename_chrs.txt
+
+
 #### Description of files for LAI with Orchestra:
 # Target panel:                Admixed_Mexicans.vcf.gz
 # Reference panel:             Source_panel.vcf.gz
 # Sample population map:       SampleTable.forTraining.txt
-
-
 
 

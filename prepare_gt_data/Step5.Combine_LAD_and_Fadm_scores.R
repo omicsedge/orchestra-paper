@@ -7,6 +7,7 @@ library(data.table)
 
 
 ### Pathways ###
+# Use same analysis folder as in previous scripts
 dataset <- 'Admixed_Mexicans'
 
 analysis_folder <- ''
@@ -212,5 +213,3 @@ ManhattanPlot
 ###### Save plots ######  
 setwd(analysis_folder)
 ggsave(filename=paste0("GWsignals_selection.", dataset, ".png"), ManhattanPlot)
-
-
