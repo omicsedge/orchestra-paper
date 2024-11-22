@@ -53,7 +53,7 @@ echo "Optional step to remove multi-allelic variants"
 # Recheck only bi-allelic variants (= remove multi-allelic variants)
 # NOTE: this step is probably not necessary! There were some issues with
 grep -v '#' ${COHORT}_set.vcf | cut -f2 | sort | uniq -c | awk '$1>1' | awk '{print $2}' > remove_variants.txt
-python /app/filter_variants.py --vcf-file ${COHORT}_set.vcf --remove-variants-file remove_variants.txt --output-file aux
+python /code/simulation/app/filter_variants.py --vcf-file ${COHORT}_set.vcf --remove-variants-file remove_variants.txt --output-file aux
 mv aux ${COHORT}_set.vcf
 
 echo "Removed variants number: $(cat  remove_variants.txt | wc -l)"
@@ -105,7 +105,7 @@ fi
 # Prepare SLiM recipe: use appropriate parameters
 # (i)   chr + pathways (fasta hg38, hapmap, results folder)
 # (ii)  sample sizes: initial and simulated
-cp /scripts/SLiM.initial_chr.$SIMULATION_TYPE.recipe SLiM.torun
+cp /code/simulation/scripts/SLiM.initial_chr.$SIMULATION_TYPE.recipe SLiM.torun
 
 sed -i "s,PARAMETER_CHR,$CHR,g" SLiM.torun
 

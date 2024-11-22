@@ -29,7 +29,7 @@ grep -v '#' founders.vcf | awk '$8="."' | awk '$7="PASS"' | tr ' ' '\t' >> datas
 # There were some issues with Alex's VCFs before and this step was needed
 echo "Start filter_variants.py"
 grep -v '#' dataset.vcf | cut -f2 | sort | uniq -c | awk '$1>1' | awk '{print $2}' > remove_variants.txt
-python /app/filter_variants.py --vcf-file dataset.vcf --remove-variants-file remove_variants.txt --output-file aux && mv aux dataset.vcf
+python /code/simulation/app/filter_variants.py --vcf-file dataset.vcf --remove-variants-file remove_variants.txt --output-file aux && mv aux dataset.vcf
 echo "Done filter_variants.py"
 
 # Chr format
@@ -54,7 +54,7 @@ echo "After grep: $(cat dataset.vcf | awk '{if ($1 !~/^#/) print}' | wc -l)"
 ## GENERATE FOUNDER LABELS                            ##
 ########################################################
 echo "Start generate_founder_labels.py"
-python /app/generate_founder_labels.py \
+python /code/simulation/app/generate_founder_labels.py \
     --vcf-file dataset.vcf \
     --sample-map-file $SAMPLE_MAP \
     --output-file ancestry.txt.gz # Labels.generation0.txt.gz
@@ -67,7 +67,7 @@ mkdir -p $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen0/
 bgzip dataset.vcf && cp dataset.vcf.gz $OUTPUT_DIR/$COHORT/genotype-data/chr$CHR/gen0/chr$CHR.vcf.gz
 
 echo "Start conversion to x-array (zarr)"
-python /app/to_xarray.py \
+python /code/simulation/app/to_xarray.py \
     --data-file dataset.vcf.gz \
     --label-file ancestry.txt.gz \
     --population-map $OUTPUT_DIR/population_map.tsv \

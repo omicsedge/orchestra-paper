@@ -74,7 +74,7 @@ fi
 # Prepare SLiM recipe: use appropriate parameters
 # (i)   chr + pathways (fasta hg38, hapmap, results folder)
 # (ii)  use reproduce_pedigree recipe
-cp /scripts/SLiM.reproduce_pedigree.recipe SLiM.torun
+cp /code/simulation/scripts/SLiM.reproduce_pedigree.recipe SLiM.torun
 
 ## Prepare SLiM recipe: one script per generation
 sed -i "s,PARAMETER_CHR,$CHR,g" SLiM.torun
@@ -98,7 +98,7 @@ awk 'OFS="\t"{ print NR*2-2,$1,$3; print NR*2-1,$1,$3 }' $keep_file > samples.or
 ## Be careful! High memory usage
 echo "Function: to extract info from tree sequence: $COHORT"
 keep_n=$(cat $keep_file | wc -l)
-python3 /app/extract_tree_info.py \
+python3 /code/simulation/app/extract_tree_info.py \
         --input-file output.trees \
         --output-file trees.generation.vcf \
         --extract-individuals $(echo $(($keep_n*$N_TIMES)))
@@ -158,7 +158,7 @@ fi
 echo "Start generate_labels function"
 samples_n=$(cat samples.keep | wc -l)
 
-python /app/generate_labels.py \
+python /code/simulation/app/generate_labels.py \
      --output-tree-file output.trees \
      --monomorphic-vts-file monomorphic_vts.generation.vcf \
      --polymorphic-vts-file polymorphic_vts.generation.vcf \
@@ -177,7 +177,7 @@ mkdir -p $OUTPUT_DIR/$COHORT/phenotype-data/chromosomes/chr$CHR/gen$GEN/
 cp Labels.generation.txt.gz $OUTPUT_DIR/$COHORT/phenotype-data/chromosomes/chr$CHR/gen$GEN/ancestry.txt.gz
 
 echo "Start conversion to x-array (zarr)"
-python /app/to_xarray.py \
+python /code/simulation/app/to_xarray.py \
     --data-file trees.generation.vcf.gz \
     --label-file Labels.generation.txt.gz \
     --population-map $OUTPUT_DIR/population_map.tsv \
