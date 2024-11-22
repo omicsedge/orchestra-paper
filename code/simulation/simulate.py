@@ -1,3 +1,4 @@
+import csv
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -6,6 +7,17 @@ from typing import List, Tuple
 
 import click
 from app.split_dataset import split_dataset
+
+order = [
+    "sample_id",
+    "level_3_code",
+    "superpopulation_code",
+    "level_1_name",
+    "level_2_name",
+    "level_3_name",
+    "data_set",
+    "meta_1",
+]
 
 
 def process_chromosome(chr: int, input_file: str, temp_path: Path) -> Tuple[int, Path]:
@@ -54,6 +66,29 @@ def simulate(
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         chr_files = {}
+
+        with open(sample_map) as f1, open(temp_path / "sample_map.tsv", "w") as f2:
+            reader = csv.DictReader(f1, delimiter="\t")
+            writer = csv.writer(f2, delimiter="\t")
+            writer.writerow(order)
+
+            for row in reader:
+                new_row = {
+                    "sample_id": row["SampleID"],
+                    "level_3_code": row["level1"],
+                    "superpopulation_code": row["level1"],
+                    "level_1_name": row["level3"],
+                    "level_2_name": row["level3"],
+                    "level_3_name": row["level3"],
+                    "data_set": row["Dataset"],
+                    "meta_1": row["Population"],
+                }
+                data = []
+                for i in order:
+                    data.append(new_row[i])
+                writer.writerow(data)
+
+        sample_map = temp_path / "sample_map.tsv"
 
         # Process chromosomes in parallel
         with ThreadPoolExecutor() as executor:

@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import List, Tuple
 
 import click
-from joblib import Parallel, delayed
 from app import (
     AncestryModel,
     evaluate,
@@ -19,6 +18,7 @@ from app import (
     train_smooth_layer,
     zarr_to_parquet,
 )
+from joblib import Parallel, delayed
 
 
 @click.command()
