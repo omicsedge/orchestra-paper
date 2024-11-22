@@ -1,15 +1,15 @@
+import json
 import logging
 import os
 import tempfile
 from pathlib import Path
-import json
+
 import click
 import dask.dataframe as dd
 
-
 # import dask.dataframe as dd
 import pandas as pd
-from app import Transformer, vcf_preprocess, predict_fn, convert_to_ancestry_format
+from app import Transformer, convert_to_ancestry_format, predict_fn, vcf_preprocess
 
 
 def run_command(cmd: str) -> None:

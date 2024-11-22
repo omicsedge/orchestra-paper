@@ -1,7 +1,7 @@
 import csv
 import gzip
 import subprocess
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
 
 import click
 
