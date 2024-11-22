@@ -1,0 +1,14 @@
+metadata_version: 1
+name: Retracing Human Genetic Histories and Natural Selection Using Precise Local
+  Ancestry Inference
+description: In an increasingly diverse world, including admixed individuals in genomic
+  studies is imperative for equity and portability. A crucial first step is precise
+  local ancestry inference (LAI). We have developed Orchestra, a LAI model with unprecedented
+  accuracy, and trained on over 10,000 single-origin individuals from 35 worldwide
+  populations. We employed Orchestra to delve into genetic relationships and demographic
+  histories, with a focus on Latin Americans, a prime example of admixture, and the
+  Ashkenazi Jewish, whose origins have long been debated. Finally, Orchestra enabled
+  us to map signatures of selection, notably identifying trace Scandinavian ancestry
+  in British samples and unveiling an immune-rich region linked to respiratory infections.
+  Our work advances the field of LAI and holds promise for improvements in future
+  applications for admixed populations.

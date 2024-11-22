@@ -1,3 +1,4 @@
+SampleID	level3	level1	Country	Population	Dataset
 HG01513	Iberian	EUR	Spain_&_Portugal	Iberian	1kg30x
 HG01610	Iberian	EUR	Spain_&_Portugal	Iberian	1kg30x
 HG01615	Iberian	EUR	Spain_&_Portugal	Iberian	1kg30x
