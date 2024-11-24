@@ -23,6 +23,8 @@ RUN cmake SLiM && make -j"$(nproc)" && install slim eidos /usr/bin && rm -rf SLi
 COPY environment/requirements.txt .
 RUN pip install -r requirements.txt
 
+COPY environment/main.py .
+
 COPY . .
 
 # Set the entry point to the Python script

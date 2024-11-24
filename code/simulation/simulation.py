@@ -130,7 +130,7 @@ def simulation(
                     futures = [
                         executor.submit(
                             run_command,
-                            f"bash code/simulation/scripts/simulate_generation.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr} {generation} {type} {n_times}",
+                            f"bash /code/simulation/scripts/simulate_generation.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr} {generation} {type} {n_times}",
                         )
                         for generation in range(1, 7)
                     ]
