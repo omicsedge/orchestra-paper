@@ -1,9 +1,0 @@
-click==8.1.7
-dask[complete]==2024.10.0
-numpy==2.0.2
-pandas==2.0.3
-scikit-learn==1.5.2
-seaborn==0.13.2
-sgkit[vcf]==0.7.0
-pyslim==1.0.4
-xarray==2024.10.0

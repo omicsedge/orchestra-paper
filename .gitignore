@@ -18,11 +18,7 @@ __pypackages__/
 training/output/
 training/model/
 data/fasta/*.fa
-output/*
-output_simulation/*
-output_training/*
-output_inference/*
-
+results/*
 
 # Exceptions
 !.gitkeep

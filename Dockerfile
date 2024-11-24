@@ -24,3 +24,6 @@ COPY environment/requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . .
+
+# Set the entry point to the Python script
+ENTRYPOINT ["python", "main.py"]

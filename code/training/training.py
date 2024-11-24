@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import List, Tuple
 
 import click
-from app import (
+from joblib import Parallel, delayed
+
+from .app import (
     AncestryModel,
     evaluate,
     merge_base_layer,
@@ -18,7 +20,6 @@ from app import (
     train_smooth_layer,
     zarr_to_parquet,
 )
-from joblib import Parallel, delayed
 
 
 @click.command()
@@ -35,6 +36,7 @@ from joblib import Parallel, delayed
     "-o",
     help="Output for data",
     type=Path,
+    default="/results/training",
 )
 @click.option(
     "--window-size",
@@ -71,7 +73,7 @@ from joblib import Parallel, delayed
     help="Epochs",
     type=int,
 )
-def train(
+def training(
     simulated_data_path: Path,
     start_chr: int,
     end_chr: int,
@@ -104,7 +106,6 @@ def train(
 
     chromosomes: List[int] = list(range(start_chr, end_chr + 1))
     cpu_count: int = os.cpu_count()
-    cohorts: Tuple[str, str] = ("train", "test")
     dataset: Path = output_dir / f"w{window_size}_parquet"
 
     # Step 1: Convert Zarr to Parquet
@@ -161,7 +162,7 @@ def train(
 def _convert_zarr_to_parquet(
     simulated_data_path: Path,
     chromosomes: List[int],
-    cohorts: Tuple[str, str],
+    cohorts: List[str],
     dataset: Path,
     window_size: int,
     level: int,
@@ -186,7 +187,7 @@ def _predict_base_layer(
     dataset: Path,
     output_dir: Path,
     chromosomes: List[int],
-    cohorts: Tuple[str, str],
+    cohorts: List[str],
     cpu_count: int,
 ) -> None:
     """Helper function to predict base layer."""
@@ -236,4 +237,4 @@ def _evaluate_results(output_dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    train()
+    training()

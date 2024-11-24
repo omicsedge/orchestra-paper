@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -6,7 +7,8 @@ from pathlib import Path
 from typing import List, Tuple
 
 import click
-from app.split_dataset import split_dataset
+
+from .app.split_dataset import split_dataset
 
 order = [
     "sample_id",
@@ -48,8 +50,14 @@ def run_command(cmd: str) -> None:
 @click.option("--version", "-v", type=str, help="Version")
 @click.option("--type", "-t", type=str, help="Type", default="random")
 @click.option("--n-times", "-nt", type=int, help="Number of times", default=2)
-@click.option("--output-dir", "-o", type=Path, help="Output directory", default=".")
-def simulate(
+@click.option(
+    "--output-dir",
+    "-o",
+    type=Path,
+    help="Output directory",
+    default="/results/simulation",
+)
+def simulation(
     start_chr: int,
     end_chr: int,
     source_panel: str,
@@ -105,13 +113,16 @@ def simulate(
         for cohort, sample_map_path in cohorts.items():
             # Generate pedigree
             run_command(
-                f"bash scripts/generate_pedigree.sh {cohort} {sample_map_path} {chr_files[end_chr]} {output_dir} {end_chr} {type} {n_times}"
+                "bash /code/simulation/scripts/generate_pedigree.sh "
+                f"{cohort} {sample_map_path} {chr_files[end_chr]} "
+                f"{output_dir} {end_chr} {type} {n_times}"
             )
 
             for chr in chromosomes:
                 # Extract founders
                 run_command(
-                    f"bash scripts/extract_founders.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr}"
+                    "bash /code/simulation/scripts/extract_founders.sh "
+                    f"{cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr}"
                 )
 
                 # Simulate generations in parallel
@@ -119,7 +130,7 @@ def simulate(
                     futures = [
                         executor.submit(
                             run_command,
-                            f"bash scripts/simulate_generation.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr} {generation} {type} {n_times}",
+                            f"bash code/simulation/scripts/simulate_generation.sh {cohort} {sample_map_path} {chr_files[chr]} {output_dir} {chr} {generation} {type} {n_times}",
                         )
                         for generation in range(1, 7)
                     ]
@@ -129,4 +140,4 @@ def simulate(
 
 
 if __name__ == "__main__":
-    simulate()
+    simulation()

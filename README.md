@@ -91,18 +91,17 @@ make build
 ### 4. Run Simulation Pipeline
 
 ```bash
-mkdir -p output_simulation
 docker run --rm \
     -v $(pwd)/data:/data \
-    -v $(pwd)/output_simulation:/output_simulation \
-    simulation \
+    -v $(pwd)/results:/results \
+    orchestra simulation\
     -sc 1 -ec 22 \
     -sp /data/toy_example/Source_panel.vcf.gz \
     -sm /data/toy_example/SampleTable.forTraining.txt \
     -v "example-0.01" \
     -t "random" \
     -nt 2 \
-    -o /output_simulation
+    -o /results/simulation
 ```
 
 <details>
@@ -125,24 +124,22 @@ docker run --rm \
 Process chromosomes in pairs (smallest 19-22 chromosomes grouped together):
 
 ```bash
-mkdir -p output_training
 for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
     start_chr=$(echo $chr | cut -d' ' -f1)
     end_chr=$(echo $chr | cut -d' ' -f2)
 
     docker run --rm \
         -v $(pwd)/data:/data \
-        -v $(pwd)/output_simulation:/output_simulation \
-        -v $(pwd)/output_training:/output_training \
-        training \
-        -sd /output_simulation \
+        -v $(pwd)/results:/results \
+        orchestra training \
+        -sd /results/simulation \
         -sc $start_chr \
         -ec $end_chr \
         -ws 600 \
         -l 3 \
-        -o /output_training \
         -v "example-0.01" \
-        -e 100
+        -e 100 \
+        -o /results/training 
 
     echo "✓ Completed chromosomes $start_chr-$end_chr"
 done
@@ -166,15 +163,13 @@ done
 ### 6. Run Inference Pipeline
 
 ```bash
-mkdir -p output_inference
 docker run --rm \
     -v $(pwd)/data:/data \
-    -v $(pwd)/output_training:/output_training \
-    -v $(pwd)/output_inference:/output_inference \
-    inference \
+    -v $(pwd)/results:/results \
+    orchestra inference \
     -p /data/toy_example/Admixed_Mexicans.target_panel.vcf.gz \
-    -o /output_inference \
-    -m /output_training/example-0.01
+    -m /tesults/training/example-0.01 \
+    -o /results/inference
 ```
 
 <details>

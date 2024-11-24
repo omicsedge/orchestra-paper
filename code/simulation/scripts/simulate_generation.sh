@@ -82,7 +82,7 @@ sed -i "s,PARAMETER_ALL_SAMPLESIZE,$(wc -l samples.keep | awk '{print $1}'),g" S
 sed -i "s,PARAMETER_GENERATIONS_N,$(($GEN+1)),g" SLiM.torun
 
 echo "Run slim script command. $(slim -v)"
-slim SLiM.torun # >/dev/null 2>&1
+slim SLiM.torun >/dev/null 2>&1
 
 # samples keep file
 if [ "$SIMULATION_TYPE" = "real" ]; then

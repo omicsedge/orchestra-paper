@@ -6,10 +6,9 @@ from pathlib import Path
 
 import click
 import dask.dataframe as dd
-
-# import dask.dataframe as dd
 import pandas as pd
-from app import Transformer, convert_to_ancestry_format, predict_fn, vcf_preprocess
+
+from .app import Transformer, convert_to_ancestry_format, predict_fn, vcf_preprocess
 
 
 def run_command(cmd: str) -> None:
@@ -26,12 +25,22 @@ def weight_to_str(x):
 
 @click.command()
 @click.option("-panel", "-p", type=Path, help="Inference panel path")
-@click.option("--output-dir", "-o", type=Path, help="Output directory")
+@click.option(
+    "--output-dir",
+    "-o",
+    type=Path,
+    help="Output directory",
+    default="/results/inference",
+)
 @click.option("--model-path", "-m", type=Path, help="Model path")
 def inference(panel: Path, output_dir: Path, model_path: Path):
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        run_command(f"bash scripts/preprocessing.sh {panel} {temp_path}")
+        run_command(
+            f"bash /code/inference/scripts/preprocessing.sh {panel} {temp_path}"
+        )
 
         submodels = model_path / "sub-models"
 
