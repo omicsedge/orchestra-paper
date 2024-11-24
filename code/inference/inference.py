@@ -143,7 +143,7 @@ def inference(panel: Path, output_dir: Path, model_path: Path):
         df = pd.concat([df_smooth, df_base])
         del df_base, df_smooth
 
-        with open("chr_map.json", "rt") as fin:
+        with open("/code/inference/chr_map.json", "rt") as fin:
             chr_fractions = json.load(fin)
 
         chr_fractions = {int(k): v for k, v in chr_fractions.items()}
