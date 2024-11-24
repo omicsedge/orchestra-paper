@@ -3,5 +3,9 @@ __pycache__/
 *.pyo
 *.pyd
 .venv/
+.idea/
+.vscode/
+.git/
+.gitignore
 data/
 results/

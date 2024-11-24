@@ -168,7 +168,7 @@ docker run --rm \
     -v $(pwd)/results:/results \
     orchestra inference \
     -p /data/toy_example/Admixed_Mexicans.target_panel.vcf.gz \
-    -m /tesults/training/example-0.01 \
+    -m /results/training/example-0.01 \
     -o /results/inference
 ```
 
