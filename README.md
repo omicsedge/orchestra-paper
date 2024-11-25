@@ -82,13 +82,19 @@ The following files are required:
 - Required columns: Sample ID, Population, Super Population
 </details>
 
-### 3. Build Docker Images
+### 3. Set Environment Variable
+
+```bash
+export EXPERIMENT_NAME="example-0.01"
+```
+
+### 4. Build Docker Images
 
 ```bash
 make build
 ```
 
-### 4. Run Simulation Pipeline
+### 5. Run Simulation Pipeline
 
 ```bash
 docker run --rm \
@@ -98,7 +104,7 @@ docker run --rm \
     -sc 1 -ec 22 \
     -sp /data/toy_example/Source_panel.vcf.gz \
     -sm /data/toy_example/SampleTable.forTraining.txt \
-    -v "example-0.01" \
+    -v $EXPERIMENT_NAME \
     -t "random" \
     -nt 2 \
     -o /results/simulation
@@ -119,14 +125,14 @@ docker run --rm \
 | `-o`, `--output` | Output directory |
 </details>
 
-### 5. Train Models
+### 6. Train Models
 
 Process chromosomes in pairs (smallest 19-22 chromosomes grouped together):
 
 ```bash
 for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
     start_chr=$(echo $chr | cut -d' ' -f1)
-    end_chr=$(echo $chr | cut -d' ' -f2)
+    end_chr==$(echo $chr | cut -d' ' -f2)
 
     docker run --rm \
         -v $(pwd)/data:/data \
@@ -137,7 +143,7 @@ for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22
         -ec $end_chr \
         -ws 600 \
         -l 3 \
-        -v "example-0.01" \
+        -v $EXPERIMENT_NAME \
         -e 100 \
         -o /results/training 
 
@@ -160,7 +166,7 @@ done
 | `-e`, `--epochs` | Training epochs |
 </details>
 
-### 6. Run Inference Pipeline
+### 7. Run Inference Pipeline
 
 ```bash
 docker run --rm \
@@ -168,7 +174,7 @@ docker run --rm \
     -v $(pwd)/results:/results \
     orchestra inference \
     -p /data/toy_example/Admixed_Mexicans.target_panel.vcf.gz \
-    -m /results/training/example-0.01 \
+    -m /results/training/$EXPERIMENT_NAME \
     -o /results/inference
 ```
 

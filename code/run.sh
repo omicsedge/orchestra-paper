@@ -3,13 +3,13 @@ set -ex
 
 echo "This script will be running about 3h (chr 5 to 22)."
 
-version="example-0.01"
+EXPERIMENT_NAME="example-0.01"
 
 python /main.py simulation \
     -sc 5 -ec 22 \
     -sp /data/toy_example/Source_panel.vcf.gz \
     -sm /data/toy_example/SampleTable.forTraining.txt \
-    -v $version \
+    -v $EXPERIMENT_NAME \
     -t "random" \
     -nt 2 \
     -o /results/simulation
@@ -27,17 +27,17 @@ for chr in "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
         -ws 600 \
         -l 3 \
         -o /results/training \
-        -v $version \
+        -v $EXPERIMENT_NAME \
         -e 100
+
+    rm -rf /results/training/m$start_chr.$end_chr
 
     echo "✓ Completed training chromosomes $start_chr-$end_chr"
 done
 
-find /results/training/ -type d -regex '.*/m[0-9]+\.[0-9]+' -exec rm -rf {} +
-
 python /main.py inference \
     -p /data/toy_example/Admixed_Mexicans.target_panel.vcf.gz \
     -o /results/inference \
-    -m /results/training/$version
+    -m /results/training/$EXPERIMENT_NAME
 
  echo "✓ Completed inference"

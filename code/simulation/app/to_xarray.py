@@ -21,15 +21,15 @@ def add_indices(ds):
 
     # fix data types (remvove since not used)
     try:
-        ds = ds.drop("variant_id")
+        ds = ds.drop_vars("variant_id")
     except ValueError:
         pass
     try:
-        ds = ds.drop("sample_id")
+        ds = ds.drop_vars("sample_id")
     except ValueError:
         pass
     try:
-        ds = ds.drop("variant_allele")
+        ds = ds.drop_vars("variant_allele")
     except ValueError:
         pass
 
@@ -38,15 +38,15 @@ def add_indices(ds):
 
 def clean_ds(ds):
     try:
-        ds = ds.drop("variant_id")
+        ds = ds.drop_vars("variant_id")
     except ValueError:
         pass
     try:
-        ds = ds.drop("sample_id")
+        ds = ds.drop_vars("sample_id")
     except ValueError:
         pass
     try:
-        ds = ds.drop("variant_allele")
+        ds = ds.drop_vars("variant_allele")
     except ValueError:
         pass
 
