@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -ex
 
-echo "This script will be running about 3h (chr 5 to 22)."
+echo "This script will be running about 5h (chr 1 to 22)."
 
 EXPERIMENT_NAME="example-0.01"
 
 python /main.py simulation \
-    -sc 5 -ec 22 \
+    -sc 1 -ec 22 \
     -sp /data/toy_example/Source_panel.vcf.gz \
     -sm /data/toy_example/SampleTable.forTraining.txt \
     -v $EXPERIMENT_NAME \
@@ -16,7 +16,7 @@ python /main.py simulation \
 
 echo "✓ Completed simulation"
 
-for chr in "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
+for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
     start_chr=$(echo $chr | cut -d' ' -f1)
     end_chr=$(echo $chr | cut -d' ' -f2)
 
