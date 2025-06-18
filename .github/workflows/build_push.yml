@@ -1,0 +1,40 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      PUSH:
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+    build_push:
+      runs-on: ubuntu-latest
+      permissions:
+        packages: write
+        contents: read
+        id-token: write
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Set up QEMU
+          uses: docker/setup-qemu-action@v3
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+
+        - name: Login to GitHub Container Registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Build and push
+          uses: docker/build-push-action@v6
+          with:
+            context: .
+            platforms: linux/amd64
+            push: ${{ inputs.PUSH }}
+            tags: ${{ inputs.PUSH && format('ghcr.io/{0}:{1},ghcr.io/{0}:latest', github.repository, github.ref_name) || format('ghcr.io/{0}:latest', github.repository) }}

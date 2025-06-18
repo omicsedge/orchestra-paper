@@ -1,0 +1,14 @@
+name: CD
+on:
+  push:
+    tags:
+    - '*'
+jobs:
+  cd:
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/build_push.yml
+    with:
+      PUSH: true

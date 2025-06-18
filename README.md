@@ -1,5 +1,8 @@
-
 [![Paper](https://img.shields.io/badge/bioRxiv-10.1101%2F2023.09.11.557177v1-blue)](https://www.biorxiv.org/content/10.1101/2023.09.11.557177v1)
+
+# Orchestra
+
+<img src="https://github.com/selfdecode/rd-imputation-selphi/blob/master/icons/SDBlueIcon.svg" alt="SelfDecode" style="width: 50px; height: auto;"><img src="https://github.com/selfdecode/rd-imputation-selphi/blob/master/icons/OmicsEdge-Logo.png" alt="OmicsEdge" style="width: 290px; height: auto;">
 
 Orchestra is a pipeline for genetic ancestry inference using deep learning. This README provides setup and usage instructions.
 
@@ -88,19 +91,47 @@ The following files are required:
 export EXPERIMENT_NAME="example-0.01"
 ```
 
-### 4. Build Docker Images
+### 4. Build Container
+
+You can use either Docker or Singularity to run the pipeline. Choose one of the following options:
+
+#### Option A: Using Docker
 
 ```bash
 make build
 ```
 
+#### Option B: Using Singularity
+
+First, ensure you have Singularity installed on your system. Then:
+
+```bash
+make build-singularity
+```
+
 ### 5. Run Simulation Pipeline
+
+#### Using Docker:
 
 ```bash
 docker run --rm \
     -v $(pwd)/data:/data \
     -v $(pwd)/results:/results \
     orchestra simulation\
+    -sc 1 -ec 22 \
+    -sp /data/toy_example/Source_panel.vcf.gz \
+    -sm /data/toy_example/SampleTable.forTraining.txt \
+    -v $EXPERIMENT_NAME \
+    -t "random" \
+    -nt 2 \
+    -o /results/simulation
+```
+
+#### Using Singularity:
+
+```bash
+singularity run --bind $(pwd)/data:/data,$(pwd)/results:/results \
+    orchestra.sif simulation \
     -sc 1 -ec 22 \
     -sp /data/toy_example/Source_panel.vcf.gz \
     -sm /data/toy_example/SampleTable.forTraining.txt \
@@ -129,6 +160,8 @@ docker run --rm \
 
 Process chromosomes in pairs (smallest 19-22 chromosomes grouped together):
 
+#### Using Docker:
+
 ```bash
 for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
     start_chr=$(echo $chr | cut -d' ' -f1)
@@ -138,6 +171,28 @@ for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22
         -v $(pwd)/data:/data \
         -v $(pwd)/results:/results \
         orchestra training \
+        -sd /results/simulation \
+        -sc $start_chr \
+        -ec $end_chr \
+        -ws 600 \
+        -l 3 \
+        -v $EXPERIMENT_NAME \
+        -e 100 \
+        -o /results/training 
+
+    echo "✓ Completed chromosomes $start_chr-$end_chr"
+done
+```
+
+#### Using Singularity:
+
+```bash
+for chr in "1 2" "3 4" "5 6" "7 8" "9 10" "11 12" "13 14" "15 16" "17 18" "19 22"; do
+    start_chr=$(echo $chr | cut -d' ' -f1)
+    end_chr==$(echo $chr | cut -d' ' -f2)
+
+    singularity run --bind $(pwd)/data:/data,$(pwd)/results:/results \
+        orchestra.sif training \
         -sd /results/simulation \
         -sc $start_chr \
         -ec $end_chr \
@@ -168,11 +223,23 @@ done
 
 ### 7. Run Inference Pipeline
 
+#### Using Docker:
+
 ```bash
 docker run --rm \
     -v $(pwd)/data:/data \
     -v $(pwd)/results:/results \
     orchestra inference \
+    -p /data/toy_example/Admixed_Mexicans.target_panel.vcf.gz \
+    -m /results/training/$EXPERIMENT_NAME \
+    -o /results/inference
+```
+
+#### Using Singularity:
+
+```bash
+singularity run --bind $(pwd)/data:/data,$(pwd)/results:/results \
+    orchestra.sif inference \
     -p /data/toy_example/Admixed_Mexicans.target_panel.vcf.gz \
     -m /results/training/$EXPERIMENT_NAME \
     -o /results/inference

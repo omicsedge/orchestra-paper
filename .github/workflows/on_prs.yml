@@ -1,0 +1,11 @@
+name: CI
+on: pull_request
+jobs:
+  ci:
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/build_push.yml
+    with:
+      PUSH: false
