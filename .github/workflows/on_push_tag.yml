@@ -4,7 +4,7 @@ on:
     tags:
     - '*'
 jobs:
-  cd:
+  docker-github:
     permissions:
       packages: write
       contents: read
@@ -12,3 +12,43 @@ jobs:
     uses: ./.github/workflows/build_push.yml
     with:
       PUSH: true
+      
+  singularity-zenodo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Singularity
+        run: |
+          # Install Singularity from Ubuntu repositories
+          sudo apt-get update
+          sudo apt-get install -y singularity-container
+          singularity --version
+
+      - name: Build Singularity SIF
+        run: |
+          sudo singularity build --fakeroot orchestra.sif Singularity.def
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload SIF to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./orchestra.sif
+          asset_name: orchestra.sif
+          asset_content_type: application/octet-stream

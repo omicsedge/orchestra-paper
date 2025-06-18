@@ -1,7 +1,7 @@
 name: CI
 on: pull_request
 jobs:
-  ci:
+  docker-github:
     permissions:
       packages: write
       contents: read
@@ -9,3 +9,29 @@ jobs:
     uses: ./.github/workflows/build_push.yml
     with:
       PUSH: false
+
+  singularity-zenodo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Singularity
+        run: |
+          # Install Singularity from Ubuntu repositories
+          sudo apt-get update
+          sudo apt-get install -y singularity-container
+          singularity --version
+
+      - name: Build Singularity SIF
+        run: |
+          sudo singularity build orchestra.sif Singularity.def
+
+      - name: Upload SIF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestra-sif
+          path: orchestra.sif
+          retention-days: 1
