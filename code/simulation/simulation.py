@@ -1,5 +1,4 @@
 import csv
-import logging
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -9,6 +8,9 @@ from typing import List, Tuple
 import click
 
 from .app.split_dataset import split_dataset
+
+# Calculate optimal thread count once at module level
+MAX_WORKERS = os.cpu_count() * 2  # For mixed I/O and CPU workload
 
 order = [
     "sample_id",
@@ -37,9 +39,22 @@ def process_chromosome(chr: int, input_file: str, temp_path: Path) -> Tuple[int,
 
 
 def run_command(cmd: str) -> None:
-    exit_code = os.system(cmd)
-    if exit_code != 0:
-        raise RuntimeError(f"Command failed with exit code {exit_code}: {cmd}")
+    try:
+        exit_code = os.system(cmd)
+        if exit_code != 0:
+            # Check for common memory-related error codes
+            if exit_code == 137:  # SIGKILL (often due to OOM killer)
+                raise MemoryError(f"Process was killed due to out of memory: {cmd}")
+            elif exit_code == 134:  # SIGABRT (often due to memory issues)
+                raise MemoryError(f"Process aborted due to memory issues: {cmd}")
+            else:
+                raise RuntimeError(f"Command failed with exit code {exit_code}: {cmd}")
+    except MemoryError as e:
+        print(f"Memory error occurred: {e}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        raise
 
 
 @click.command()
@@ -67,6 +82,19 @@ def simulation(
     n_times: int,
     output_dir: Path,
 ) -> None:
+    """
+    Run the SLiM simulation.
+    
+    Args:
+        start_chr: The start chromosome.
+        end_chr: The end chromosome.
+        source_panel: The source panel path.
+        sample_map: The sample map file.
+        version: The version.
+        type: The type.
+        n_times: The number of times to run the simulation.
+        output_dir: The output directory.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     chromosomes: List[int] = list(range(start_chr, end_chr + 1))
 
@@ -99,7 +127,7 @@ def simulation(
         sample_map = temp_path / "sample_map.tsv"
 
         # Process chromosomes in parallel
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = [
                 executor.submit(process_chromosome, chr, source_panel, output_dir)
                 for chr in chromosomes
@@ -126,7 +154,7 @@ def simulation(
                 )
 
                 # Simulate generations in parallel
-                with ThreadPoolExecutor() as executor:
+                with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
                     futures = [
                         executor.submit(
                             run_command,

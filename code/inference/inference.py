@@ -34,6 +34,14 @@ def weight_to_str(x):
 )
 @click.option("--model-path", "-m", type=Path, help="Model path")
 def inference(panel: Path, output_dir: Path, model_path: Path):
+    """
+    Run the ancestry inference.
+
+    Args:
+        panel: The panel path.
+        output_dir: The output directory.
+        model_path: The model path.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as temp_dir:
