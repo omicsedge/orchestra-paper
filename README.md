@@ -2,7 +2,7 @@
 
 # Orchestra
 
-<img src="https://github.com/selfdecode/rd-imputation-selphi/blob/master/icons/SDBlueIcon.svg" alt="SelfDecode" style="width: 50px; height: auto;"><img src="https://github.com/selfdecode/rd-imputation-selphi/blob/master/icons/OmicsEdge-Logo.png" alt="OmicsEdge" style="width: 290px; height: auto;">
+<img src="https://github.com/selfdecode/rd-imputation-selphi/blob/master/icons/OmicsEdge-Logo.png" alt="OmicsEdge" style="width: 290px; height: auto;">
 
 Orchestra is a pipeline for genetic ancestry inference using deep learning. This README provides setup and usage instructions.
 

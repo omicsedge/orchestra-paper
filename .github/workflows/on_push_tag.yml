@@ -16,10 +16,67 @@ jobs:
   singularity-zenodo:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          # Function to calculate previous tag based on semantic versioning
+          calculate_previous_tag() {
+            local current_tag=$1
+            local major minor patch
+            
+            # Remove 'v' prefix if present
+            current_tag=${current_tag#v}
+            
+            # Parse version components
+            IFS='.' read -r major minor patch <<< "$current_tag"
+            
+            # Calculate previous version based on rules
+            if [ "$patch" -gt 0 ]; then
+              previous_patch=$((patch - 1))
+              echo "v${major}.${minor}.${previous_patch}"
+            elif [ "$minor" -gt 0 ]; then
+              previous_minor=$((minor - 1))
+              echo "v${major}.${previous_minor}.9"
+            else
+              previous_major=$((major - 1))
+              echo "v${previous_major}.9.9"
+            fi
+          }
+          
+          # Get the current tag (remove 'refs/tags/' prefix)
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          echo "Current tag: $CURRENT_TAG"
+          
+          # Calculate the previous tag
+          PREVIOUS_TAG=$(calculate_previous_tag "$CURRENT_TAG")
+          echo "Calculated previous tag: $PREVIOUS_TAG"
+          
+          # Check if the calculated previous tag exists
+          if git rev-parse "$PREVIOUS_TAG" >/dev/null 2>&1; then
+            echo "Previous tag exists, generating changelog from $PREVIOUS_TAG to $CURRENT_TAG"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges ${PREVIOUS_TAG}..${CURRENT_TAG})
+          else
+            echo "Calculated previous tag $PREVIOUS_TAG does not exist, getting all commits"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges --reverse)
+          fi
+          
+          echo "Raw changelog:"
+          echo "$CHANGELOG"
+          echo "Number of lines in changelog: $(echo "$CHANGELOG" | wc -l)"
+          
+          # Escape newlines for GitHub Actions
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          
+          echo "changelog=${CHANGELOG}" >> $GITHUB_OUTPUT
+          echo "Generated changelog:"
+          echo "$CHANGELOG"
 
       - name: Set up Singularity
         run: |
@@ -27,28 +84,91 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y singularity-container
           singularity --version
-
+  
       - name: Build Singularity SIF
         run: |
-          sudo singularity build --fakeroot orchestra.sif Singularity.def
+          sudo singularity build orchestra.sif Singularity.def
+  
+      - name: Upload SIF to Zenodo
+        id: zenodo_upload
+        run: |
+          # Use a fixed deposition ID - this is public information
+          DEPOSITION_ID="${{ vars.ZENODO_DEPOSITION_ID }}"
+   
+          echo "Uploading to Zenodo deposition: $DEPOSITION_ID"
+          
+          # Update the deposition metadata
+          curl -H "Authorization: Bearer ${{ secrets.ZENODO_TOKEN }}" \
+               -H "Content-Type: application/json" \
+               -X PUT https://zenodo.org/api/deposit/depositions/$DEPOSITION_ID \
+               -d '{
+                 "metadata": {
+                   "title": "Orchestra Singularity Container - '${{ github.ref_name }}'",
+                   "description": "Singularity container for Orchestra pipeline release '${{ github.ref_name }}'. This container includes all dependencies and tools needed to run the Orchestra pipeline. GitHub Release: https://github.com/'${{ github.repository }}'/releases/tag/'${{ github.ref_name }}'",
+                   "creators": [{"name": "Orchestra Team", "affiliation": "GeniusLabs"}],
+                   "version": "'${{ github.ref_name }}'",
+                   "upload_type": "software",
+                   "license": "mit",
+                   "keywords": ["orchestra", "pipeline", "singularity", "container", "bioinformatics"]
+                 }
+               }'
+          
+          # Remove existing files (if any)
+          echo "Removing existing files..."
+          curl -H "Authorization: Bearer ${{ secrets.ZENODO_TOKEN }}" \
+               -X DELETE https://zenodo.org/api/deposit/depositions/$DEPOSITION_ID/files
+          
+          # Upload the new SIF file
+          echo "Uploading orchestra.sif..."
+          UPLOAD_RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.ZENODO_TOKEN }}" \
+                                 -F "file=@orchestra.sif" \
+                                 https://zenodo.org/api/deposit/depositions/$DEPOSITION_ID/files)
+          
+          echo "Upload response: $UPLOAD_RESPONSE"
+          
+          # Get the DOI
+          DOI=$(curl -H "Authorization: Bearer ${{ secrets.ZENODO_TOKEN }}" \
+                     https://zenodo.org/api/deposit/depositions/$DEPOSITION_ID | \
+                     jq -r '.metadata.doi // .doi // "DOI not available"')
+          
+          echo "DOI: $DOI"
+          echo "doi=$DOI" >> $GITHUB_OUTPUT
+          
+          # Publish the deposition
+          echo "Publishing deposition..."
+          PUBLISH_RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.ZENODO_TOKEN }}" \
+                                  -X POST https://zenodo.org/api/deposit/depositions/$DEPOSITION_ID/actions/publish)
+          
+          echo "Publish response: $PUBLISH_RESPONSE"
+          
+          # Get the final DOI after publishing
+          FINAL_DOI=$(curl -H "Authorization: Bearer ${{ secrets.ZENODO_TOKEN }}" \
+                           https://zenodo.org/api/deposit/depositions/$DEPOSITION_ID | \
+                           jq -r '.metadata.doi // .doi // "DOI not available"')
+          
+          echo "Final DOI after publishing: $FINAL_DOI"
+          echo "final_doi=$FINAL_DOI" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: comnoco/create-release-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body: |
+            ## Changes in this Release
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Downloads
+            
+            **Singularity Container**: Available on [Zenodo](https://doi.org/${{ steps.zenodo_upload.outputs.final_doi }})
+            
+            **Docker Image**: `docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
+            
+            ---
+            *This release was automatically generated by GitHub Actions*
           draft: false
           prerelease: false
-
-      - name: Upload SIF to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./orchestra.sif
-          asset_name: orchestra.sif
-          asset_content_type: application/octet-stream
