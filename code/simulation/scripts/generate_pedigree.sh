@@ -153,6 +153,14 @@ for generation_round in $(seq 1 $generations_run); do
     sed -i "s,PARAMETER_GENERATIONS_N,$generations_output,g" SLiM.torun_gen$generation_round
 done
 
+# Check if the required fasta file exists
+FASTA_FILE="/data/fasta/$CHR.fa"
+if [ ! -f "$FASTA_FILE" ]; then
+    echo "ERROR: Required fasta file $FASTA_FILE does not exist!"
+    echo "Please ensure the fasta file for chromosome $CHR is available at $FASTA_FILE"
+    exit 1
+fi
+
 echo '########################################'
 echo "Run SLiM script for $COHORT cohort"
 echo '########################################'

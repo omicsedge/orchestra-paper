@@ -25,12 +25,6 @@ RUN wget https://github.com/MesserLab/SLiM/releases/download/v3.7.1/SLiM.zip && 
 RUN cmake SLiM && make -j"$(nproc)" && install slim eidos /usr/bin && rm -rf SLiM
 
 COPY environment/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Set environment variables to handle ARM64 compilation issues
-ENV CFLAGS="-O2"
-ENV CXXFLAGS="-O2"
-ENV NUMCODECS_DISABLE_AVX2=1
 
 RUN pip install --no-cache-dir -r requirements.txt
 
