@@ -13,3 +13,4 @@ torch==2.5.0
 pyslim==1.0.4
 xarray==2024.10.0
 zarr==2.18.7
+numcodecs==0.11.0
