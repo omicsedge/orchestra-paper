@@ -9,7 +9,7 @@ scipy==1.14.1
 scikit-learn==1.5.2
 seaborn==0.13.2
 sgkit[vcf]==0.7.0
-torch==2.5.0
+torch==2.8.0
 pyslim==1.0.4
 xarray==2024.10.0
 zarr==2.18.7
